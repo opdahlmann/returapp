@@ -155,6 +155,18 @@ export class PickupApi {
     return firstValueFrom(this.http.get<{ counts: Partial<Record<string, number>>; open: number }>('/api/pickups/counts'));
   }
 
+  start(id: string) {
+    return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/start`, {}));
+  }
+
+  complete(id: string, body: { qty: number; note: string; photoIds: string[] }) {
+    return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/complete`, body));
+  }
+
+  deviation(id: string, reason: string, note: string) {
+    return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/deviation`, { reason, note }));
+  }
+
   cancel(id: string) {
     return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/cancel`, {}));
   }

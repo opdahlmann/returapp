@@ -12,6 +12,8 @@ public static class PickupEndpoints
 
     public record AssignBody(string? DriverId, string? Day, string? Slot);
     public record MarketBody(bool Open);
+    public record CompleteBody(double Qty, string? Note, List<string>? PhotoIds);
+    public record DeviationBody(string? Reason, string? Note);
 
     public static readonly string[] Active = [PickupStatus.Ny, PickupStatus.Tildelt, PickupStatus.Planlagt, PickupStatus.Underveis];
     static readonly string[] Assignable = [PickupStatus.Ny, PickupStatus.Tildelt, PickupStatus.Planlagt];
@@ -181,6 +183,81 @@ public static class PickupEndpoints
             return Results.Ok((await Dtos(db, [updated], suggest: true))[0]);
         });
 
+        g.MapPost("/{id}/start", async (string id, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var c = ctx.User.Caller();
+            var now = DateTime.UtcNow;
+            var p = await db.Pickups.FindOneAndUpdateAsync(x => x.Id == id && x.DriverId == c.UserId && (x.Status == PickupStatus.Planlagt || x.Status == PickupStatus.Tildelt),
+                Builders<Pickup>.Update.Set(x => x.Status, PickupStatus.Underveis).Set(x => x.UpdatedAt, now).Push(x => x.StatusLog, new StatusLogEntry(PickupStatus.Underveis, now, c.UserId)),
+                new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (p == null) return await NotYours(db, c, id, "Hentingen kan ikke startes nå");
+            var driver = await db.Users.Find(u => u.Id == c.UserId).Project(u => u.Name).FirstOrDefaultAsync();
+            var text = $"{driver} er på vei for å hente {p.Title}.";
+            if (p.GiverUserId != null) await notify.User(p.GiverUserId, "pickup.started", "Sjåføren er på vei", text, id, Channels.Sms);
+            else if (p.GuestPhone != null) await notify.Sms(p.GuestPhone, text);
+            return Results.Ok((await Dtos(db, [p]))[0]);
+        });
+
+        // Sjåføren bekrefter: minst ett bilde, hentet mengde (kg skaleres), merknad. Giver får kvittering (e-post med PDF / SMS med lenke).
+        g.MapPost("/{id}/complete", async (string id, CompleteBody b, HttpContext ctx, Db db, Notifier notify, IMailSender mail, IConfiguration cfg) =>
+        {
+            var c = ctx.User.Caller();
+            var p = await db.Pickups.Find(x => x.Id == id && x.DriverId == c.UserId).FirstOrDefaultAsync();
+            if (p == null) return await NotYours(db, c, id, "");
+            if (!Assignable.Contains(p.Status) && p.Status != PickupStatus.Underveis || p.Status == PickupStatus.Ny) return AuthEndpoints.Err(409, "Hentingen kan ikke bekreftes nå");
+            if (b.Qty < 0 || b.Qty > p.Qty * 10 + 1000) return AuthEndpoints.Err(400, "Ugyldig mengde");
+            var photos = await PhotoEndpoints.Attach(db, c, b.PhotoIds, id);
+            if (photos.Count == 0) return AuthEndpoints.Err(400, "Ta minst ett bilde av det som hentes");
+            var now = DateTime.UtcNow;
+            var kg = p.Qty > 0 ? (int)Math.Round(p.EstKg * b.Qty / p.Qty) : p.EstKg;
+            var updated = await db.Pickups.FindOneAndUpdateAsync(x => x.Id == id && x.DriverId == c.UserId && Active.Contains(x.Status) && x.Status != PickupStatus.Ny,
+                Builders<Pickup>.Update.Set(x => x.Status, PickupStatus.Hentet).Set(x => x.PickedAt, now).Set(x => x.PickedQty, b.Qty).Set(x => x.EstKg, kg)
+                    .Set(x => x.PickedPhotos, photos).Set(x => x.PickedNote, (b.Note ?? "").Trim()).Set(x => x.UpdatedAt, now)
+                    .Push(x => x.StatusLog, new StatusLogEntry(PickupStatus.Hentet, now, c.UserId)),
+                new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (updated == null) return AuthEndpoints.Err(409, "Hentingen kan ikke bekreftes nå");
+
+            var link = $"{cfg["App:BaseUrl"]}/p/{id}/receipt";
+            var body = $"{updated.Title} er hentet og bekreftet. {Fmt.Kg(kg)} holdt i bruk. Kvittering: {link}";
+            if (updated.CompanyId != null) await notify.CompanyAdmins(updated.CompanyId, "pickup.done", $"Hentet {id}", body, id);
+            if (updated.GiverUserId != null)
+            {
+                await notify.User(updated.GiverUserId, "pickup.done", "Hentet og bekreftet", body, id, Channels.Sms);
+                var giver = await db.Users.Find(u => u.Id == updated.GiverUserId && u.Active).FirstOrDefaultAsync();
+                if (giver is { Email: not null, Notif.Email: true })
+                {
+                    var cat = await db.Categories.Find(x => x.Id == updated.CategoryId).Project(x => x.Name).FirstOrDefaultAsync() ?? "Annet";
+                    var driverName = await db.Users.Find(u => u.Id == c.UserId).Project(u => u.Name).FirstOrDefaultAsync() ?? "";
+                    var companyName = updated.CompanyId == null ? "" : await db.Companies.Find(x => x.Id == updated.CompanyId).Project(x => x.Name).FirstOrDefaultAsync() ?? "";
+                    var pdf = Pdf.Receipt(updated, cat, driverName, companyName, Weight.Co2(kg, cfg));
+                    try { await mail.Send(new Mail(giver.Email, $"Kvittering {id} – hentet og bekreftet", body, [new MailAttachment($"kvittering-{id}.pdf", pdf, "application/pdf")])); }
+                    catch { /* e-post er best-effort; in-app og SMS er allerede sendt */ }
+                }
+            }
+            else if (updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, body);
+            return Results.Ok((await Dtos(db, [updated]))[0]);
+        });
+
+        g.MapPost("/{id}/deviation", async (string id, DeviationBody b, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var c = ctx.User.Caller();
+            if (!Seeder.DeviationReasons.Contains(b.Reason)) return AuthEndpoints.Err(400, "Velg en årsak");
+            var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            var allowed = p != null && ((p.DriverId != null && p.DriverId == c.UserId) || (c.Has("admin") && c.CompanyId == p.CompanyId) || c.Has("super"));
+            if (!allowed) return AuthEndpoints.Err(404, "Fant ikke hentingen");
+            var now = DateTime.UtcNow;
+            var updated = await db.Pickups.FindOneAndUpdateAsync(x => x.Id == id && Active.Contains(x.Status),
+                Builders<Pickup>.Update.Set(x => x.Status, PickupStatus.Avvik).Set(x => x.Deviation, new Deviation(b.Reason!, (b.Note ?? "").Trim(), now))
+                    .Set(x => x.Open, false).Set(x => x.UpdatedAt, now).Push(x => x.StatusLog, new StatusLogEntry(PickupStatus.Avvik, now, c.UserId)),
+                new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (updated == null) return AuthEndpoints.Err(409, "Avvik kan bare meldes på aktive hentinger");
+            var text = $"{updated.Title}: {b.Reason}{(string.IsNullOrWhiteSpace(b.Note) ? "" : " – " + b.Note!.Trim())}";
+            if (updated.CompanyId != null) await notify.CompanyAdmins(updated.CompanyId, "pickup.deviation", $"Avvik på {id}", text, id);
+            if (updated.GiverUserId != null) await notify.User(updated.GiverUserId, "pickup.deviation", "Avvik på hentingen", text, id, Channels.Sms);
+            else if (updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, $"Avvik på {id}: {text}");
+            return Results.Ok((await Dtos(db, [updated]))[0]);
+        });
+
         g.MapPost("/{id}/market", async (string id, MarketBody b, HttpContext ctx, Db db, Notifier notify) =>
         {
             var c = ctx.User.Caller();
@@ -228,6 +305,13 @@ public static class PickupEndpoints
             if (p == null || !CanRead(ctx.User.Caller(), p)) return AuthEndpoints.Err(404, "Fant ikke hentingen");
             return Results.File(Pdf.Label(p, $"{cfg["App:BaseUrl"]}/p/{p.Id}"), "application/pdf", $"merkelapp-{p.Id}.pdf");
         });
+    }
+
+    /// 404 hvis ordren ikke finnes eller ikke er sjåførens, ellers 409 med gitt melding.
+    static async Task<IResult> NotYours(Db db, Caller c, string id, string conflict)
+    {
+        var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
+        return p == null || p.DriverId != c.UserId ? AuthEndpoints.Err(404, "Fant ikke hentingen") : AuthEndpoints.Err(409, conflict);
     }
 
     /// Ordre + oppslag frontend trenger (kategori, firma, sjåfør, meldinger). Statusetikett/farger beregnes i frontend.

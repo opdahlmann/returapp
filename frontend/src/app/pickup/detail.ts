@@ -5,6 +5,7 @@ import { errorText, phone, relTime } from '../core/format';
 import { isActive, kgText, Pickup, PickupApi, place, qtyText, statusBg, statusFg, statusLabel, timeline, when } from '../core/pickups';
 import { ShellStore } from '../shell/shell.store';
 import { AssignSheet } from './assign-sheet';
+import { AvvikSheet } from './avvik-sheet';
 import { Icon } from '../ui/icon';
 import { PhotoImg } from '../ui/photo';
 
@@ -185,6 +186,11 @@ export class PickupDetail {
       switch (name) {
         case 'assign':
           return this.shell.openSheet(AssignSheet, { pickup: p, preselect: p.driverId ?? p.suggestedDriverId ?? null, done: reload });
+        case 'start':
+          await this.api.start(p.id);
+          return this.router.navigateByUrl(`/p/${p.id}/complete`);
+        case 'deviation':
+          return this.shell.openSheet(AvvikSheet, { pickup: p });
         case 'market':
           await this.api.market(p.id, !p.open);
           this.shell.toast(p.open ? 'Fjernet fra børsen' : 'Lagt på oppdragsbørsen');
