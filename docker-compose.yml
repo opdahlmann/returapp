@@ -1,0 +1,26 @@
+# Standard: api mot ekstern dev-DB fra backend/.env.
+# Lokal Mongo: `docker compose --profile local up` og sett Mongo__ConnectionString=mongodb://mongo:27017 i backend/.env.
+services:
+  api:
+    build: ./backend
+    env_file: backend/.env
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:8
+    profiles: [local]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+volumes:
+  mongo-data:
