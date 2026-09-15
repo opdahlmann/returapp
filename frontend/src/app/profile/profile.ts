@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { roleOrg } from '../auth/roles';
 import { AuthStore, Me } from '../core/auth.store';
+import { APP_VERSION } from '../core/http';
 import { errorText, initials, phone } from '../core/format';
 import { RefStore } from '../core/ref.store';
 import { Role, ROLES } from '../core/roles';
@@ -13,8 +14,6 @@ import { ShellStore } from '../shell/shell.store';
 import { Icon } from '../ui/icon';
 import { Toggle } from '../ui/toggle';
 import { EditProfileSheet, PostnrSheet, SupportSheet, guestPostnr } from './profile-sheets';
-
-export const APP_VERSION = '1.0.0';
 
 @Component({
   selector: 'ra-profile',

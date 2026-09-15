@@ -43,6 +43,7 @@ public static class PhotoEndpoints
                 : (caller.UserId != null && file.OwnerUserId == caller.UserId) || (caller.GuestId != null && file.GuestId == caller.GuestId);
             if (!allowed) return AuthEndpoints.Err(404, "Fant ikke bildet");
             ctx.Response.Headers.CacheControl = "private, max-age=604800, immutable";
+            ctx.Response.Headers.ContentDisposition = "inline";
             return Results.File(file.Data, file.ContentType);
         }).RequireAuthorization();
     }

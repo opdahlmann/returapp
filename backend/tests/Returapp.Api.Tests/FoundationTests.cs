@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Returapp.Api.Seed;
@@ -22,6 +23,14 @@ public class FoundationTests(ApiFixture api)
         var res = await api.CreateClient().GetAsync("/ready");
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
         Assert.Contains("\"db\":true", await res.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Client_errors_are_accepted_anonymously_and_responses_have_nosniff()
+    {
+        var res = await api.CreateClient().PostAsJsonAsync("/api/client-errors", new { message = new string('x', 5000), url = "/g/home", version = "1.0.0" });
+        Assert.Equal(HttpStatusCode.NoContent, res.StatusCode);
+        Assert.Equal("nosniff", res.Headers.GetValues("X-Content-Type-Options").Single());
     }
 
     [Fact]

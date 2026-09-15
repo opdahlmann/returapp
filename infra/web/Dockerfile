@@ -7,7 +7,8 @@ RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 RUN npx ng build --configuration $NG_CONFIGURATION
 
-FROM public.ecr.aws/nginx/nginx:alpine
+# Kjører som ikke-root (uid 101). Port 80 går fordi Docker tillater lave porter i containerens eget nettverk.
+FROM public.ecr.aws/nginx/nginx-unprivileged:alpine
 COPY infra/web/nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build /src/dist/frontend/browser /usr/share/nginx/html
 # Kun API_UPSTREAM byttes inn – uten filteret ville envsubst ødelagt nginx sine egne $-variabler.

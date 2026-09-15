@@ -22,6 +22,13 @@ if (args.FirstOrDefault() == "vapid")
 DotEnv.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+// Prod: én JSON-linje per logg til stdout (Logs-fanen i Dokploy). Dev: vanlig lesbar konsoll.
+// DataProtection-advarslene om nøkler som ikke lagres dempes i appsettings: appen bruker ikke DataProtection (egne JWT-er).
+if (!builder.Environment.IsDevelopment())
+    builder.Logging.ClearProviders().AddJsonConsole(o => o.JsonWriterOptions = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+// Samme grense som nginx (client_max_body_size 10m).
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 10 * 1024 * 1024);
+builder.Services.AddHsts(o => { o.MaxAge = TimeSpan.FromDays(365); o.IncludeSubDomains = true; });
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<Jwt>();
@@ -65,6 +72,8 @@ builder.Services.AddRateLimiter(o =>
     o.RejectionStatusCode = 429;
     o.AddPolicy("auth", ctx => RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "ukjent",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue("App:AuthRateLimitPerMinute", 30), Window = TimeSpan.FromMinutes(1) }));
+    o.AddPolicy("client-errors", ctx => RateLimitPartition.GetFixedWindowLimiter(ctx.Connection.RemoteIpAddress?.ToString() ?? "ukjent",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
 });
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
@@ -81,7 +90,15 @@ var missing = new[] { "Mongo:ConnectionString", "Mongo:Database", "Jwt:Secret" }
 if (missing.Count > 0) throw new InvalidOperationException("Mangler påkrevd konfig: " + string.Join(", ", missing.Select(k => k.Replace(":", "__"))));
 if (app.Configuration["Jwt:Secret"]!.Length < 32) throw new InvalidOperationException("Jwt__Secret må være minst 32 tegn");
 
+if (app.Configuration.GetValue<bool>("App:DevEndpoints")) app.Logger.LogWarning("App__DevEndpoints er på – dev-endepunkter (innloggingskoder, demo-reset) er åpne. Skal aldri være satt i Dokploy.");
+
 app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment()) app.UseHsts(); // bare over https (X-Forwarded-Proto fra Traefik)
+app.Use((ctx, next) =>
+{
+    ctx.Response.Headers.XContentTypeOptions = "nosniff";
+    return next();
+});
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseRateLimiter();
@@ -107,9 +124,18 @@ app.MapRoutes();
 app.MapSuper();
 app.MapNotifications();
 app.MapExport();
+// Feil fra frontend (ErrorHandler): bare melding, sti og versjon – logges, lagres ikke.
+app.MapPost("/api/client-errors", (ClientError e, ILogger<ClientError> log) =>
+{
+    log.LogWarning("Klientfeil {Version} {Url}: {Message}", Trim(e.Version, 20), Trim(e.Url, 200), Trim(e.Message, 500));
+    return Results.NoContent();
+    static string Trim(string? s, int max) => (s ?? "").ReplaceLineEndings(" ") is var t && t.Length > max ? t[..max] : t;
+}).RequireRateLimiting("client-errors");
 app.MapSupport();
 
 app.Run();
+
+record ClientError(string? Message, string? Url, string? Version);
 
 static class DotEnv
 {

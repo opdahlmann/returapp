@@ -3,8 +3,6 @@
 Returapp kjører i Dokploy som to applikasjoner per miljø (API og web), bygget fra Dockerfiles i `infra/`.
 Ingen Docker Compose, ingen image-registry, ingen volumer. Bakgrunn og begrunnelser: `IMPLEMENTERINGSPLAN.md` § 2.8.
 
-> `infra/api/Dockerfile` kommer i fase 1 og `infra/web/Dockerfile` + `nginx.conf` i fase 3. Før det finnes ingenting å deploye.
-
 ## 1 · Apper
 
 | App i Dokploy | Branch | Dockerfile Path | Build Context | Port | Domene |
@@ -67,7 +65,7 @@ App__SeedDemo=<true i dev | false i prod>
 App__Co2Factor=0.9
 ```
 
-**Aldri** sett `App__DevEndpoints` i Dokploy. Den åpner `/api/dev/last-sms`, som viser innloggingskoder.
+**Aldri** sett `App__DevEndpoints` i Dokploy. Den åpner `/api/dev/*`: innloggingskoder (`last-sms`), e-poster med lenker (`last-mail`), sletting av testdata og tilbakestilling av demo-data. API-et logger en advarsel ved oppstart hvis den er på.
 
 `ASPNETCORE_HTTP_PORTS` og `ASPNETCORE_ENVIRONMENT` settes av Dockerfilen og skal ikke inn her.
 
@@ -89,7 +87,11 @@ Tjenestenavnet genereres av Dokploy. Finn det i API-appens **Logs**-fane: contai
 3. **API først**: Create Application → innstillinger fra § 1 → Environment fra § 3 → Domain → Deploy. Noter tjenestenavnet.
 4. **Web**: Create Application → innstillinger fra § 1 → `API_UPSTREAM` → Domain (HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect) → Deploy.
 5. **Auto-deploy** ved push til branchen slås på for begge.
-6. **Helsesjekk og rollback**: imagene har `HEALTHCHECK` (API: `/ready`). Sett Swarm update config til rollback når en ny versjon ikke blir frisk.
+6. **Helsesjekk og rollback**: imagene har `HEALTHCHECK` (API: `/ready`, web: `/`). Under appens Advanced → Swarm Settings → Update Config:
+   ```json
+   { "Parallelism": 1, "Delay": 10000000000, "FailureAction": "rollback", "Monitor": 60000000000, "Order": "start-first" }
+   ```
+   Ny versjon startes ved siden av den gamle, og Swarm ruller tilbake hvis den ikke blir frisk innen ett minutt (tidene er nanosekunder).
 7. Gjenta 3–6 for det andre miljøet. Dev (`opd`) settes opp først: API etter fase 1, web etter fase 3.
 
 ## 5 · Røyktest etter deploy
@@ -134,8 +136,59 @@ docker run --rm -e API_UPSTREAM=http://host.docker.internal:8080 -p 8081:80 retu
 | Cloudflare 522 | Traefik lytter ikke på 80/443 | Dokploy → Settings → Server |
 | Cloudflare 502 | Tjenesten er `0/0` | Redeploy appen |
 
-## 8 · Drift
+## 8 · Før prod-deploy
 
-- **Logger**: stdout, leses i Logs-fanen i Dokploy.
-- **Backup**: `mongodump`-cron på databaseserveren (utenfor Dokploy).
-- **Hemmeligheter**: Dokploy lagrer Environment i klartekst. Egne hemmeligheter per miljø. Roter ved mistanke om lekkasje.
+- [ ] DNS for `api.returapp.no` og `app.returapp.no` peker på Dokploy-verten.
+- [ ] Egen prod-database og egen databasebruker (ikke dev-brukeren). Demo-brukerne i `README.md` finnes bare i dev.
+- [ ] `App__SeedDemo=false`, `App__BaseUrl=https://app.returapp.no`, `App__DevEndpoints` **ikke** satt.
+- [ ] Nye hemmeligheter for prod: `Jwt__Secret` (`openssl rand -hex 32`), Twilio, SMTP, VAPID (`-- vapid`).
+- [ ] `Sms__Provider=Twilio`, `Mail__Provider=Smtp`, `Push__Provider=WebPush`. Med `Console` sendes ingenting – innlogging med SMS er da umulig.
+- [ ] Update Config med rollback (§ 4 steg 6) på begge appene.
+- [ ] Backup-cron satt opp og én gjenoppretting testet (§ 9).
+- [ ] Røyktest (§ 5) grønn.
+
+## 9 · Drift
+
+### Logger
+
+- API skriver én JSON-linje per logghendelse til stdout i prod (`ASPNETCORE_ENVIRONMENT=Production`), lesbar i appens **Logs**-fane. Filtrer på `"LogLevel":"Error"` eller `"Warning"`.
+- Uventede feil i nettleseren sendes til `POST /api/client-errors` (melding, sti uten token, versjon) og havner i samme logg som `Klientfeil …`. Maks 5 per sidevisning og 20 per minutt per IP. Ingenting lagres i databasen.
+- web (nginx) logger forespørsler til stdout.
+
+### Backup
+
+Alle data, også bilder og filer, ligger i MongoDB – en `mongodump` av databasen er hele backupen. Den kjører på databaseserveren, utenfor Dokploy og appen. Eksempel med egen backup-bruker (rolle `backup`), nattlig kl. 03:15 og 14 dagers historikk:
+
+```sh
+# /etc/cron.d/returapp-backup
+15 3 * * * root mongodump --uri="mongodb://backup:<passord>@localhost:<port>/?authSource=admin" --db=<prod-database> --gzip --archive=/var/backups/returapp/returapp-$(date +\%F).gz && find /var/backups/returapp -name 'returapp-*.gz' -mtime +14 -delete
+```
+
+Kopier arkivene til et annet sted enn databaseserveren (f.eks. objektlagring) – en backup på samme disk hjelper ikke hvis serveren forsvinner.
+
+Gjenoppretting (test den minst én gang i kvartalet på en annen server eller i en midlertidig database som slettes etter testen):
+
+```sh
+mongorestore --uri="mongodb://<admin>@<host>:<port>/?authSource=admin" --gzip --archive=returapp-2026-09-15.gz --nsInclude='<prod-database>.*' --drop
+```
+
+### Sikkerhet
+
+| Krav | Hvor |
+| --- | --- |
+| TLS og HTTP→HTTPS | Traefik (domeneinnstillingene i Dokploy) |
+| HSTS (1 år, inkl. subdomener) | nginx for `app.returapp.no`, API-et for `api.returapp.no` |
+| `Jwt__Secret` ≥ 32 tegn | Valideres ved oppstart – API-et starter ikke uten |
+| Rate-limit på `/api/auth/*` per klient-IP | ASP.NET RateLimiter, klient-IP fra Traefiks `X-Forwarded-For` (én hop) |
+| Maks 10 MB request body | nginx `client_max_body_size` og Kestrel `MaxRequestBodySize` |
+| Ingen CORS | Appen kaller `/api` på eget domene |
+| Ingen stack traces ut | ProblemDetails; `ASPNETCORE_ENVIRONMENT=Production` |
+| `X-Content-Type-Options: nosniff` | Alle svar fra nginx og API |
+| Bilder med riktig MIME og `Content-Disposition: inline`, bare for de som kan se ordren | `GET /api/photos/{id}` |
+| Ikke-root containere, ingen volumer | API: brukeren `app`. web: `nginx-unprivileged` (uid 101) |
+| Ingen skriving til disk | Alt i MongoDB; CI kjører API-et med `--read-only` |
+| Dev-endepunkter av | `App__DevEndpoints` aldri i Dokploy; advarsel i loggen hvis på |
+
+### Hemmeligheter
+
+Dokploy lagrer Environment i klartekst. Egne hemmeligheter per miljø. Roter ved mistanke om lekkasje: ny `Jwt__Secret` gjør alle access-tokens (15 min) ugyldige, men innloggede brukere fornyes via refresh-token. Skal alle logges ut, tøm i tillegg `refreshTokens` på brukerne (`db.users.updateMany({}, {$set: {refreshTokens: []}})`). Nye Twilio/SMTP-nøkler byttes hos leverandøren først. VAPID-nøkler bør ikke roteres – eksisterende push-abonnement slutter da å virke.

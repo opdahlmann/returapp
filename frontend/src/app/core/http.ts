@@ -1,9 +1,27 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { ErrorHandler, inject, Injectable, isDevMode } from '@angular/core';
 import { CanMatchFn, Router } from '@angular/router';
 import { catchError, from, switchMap, throwError } from 'rxjs';
 import { AuthStore } from './auth.store';
 import { Role } from './roles';
+
+export const APP_VERSION = '1.0.0';
+
+/** Stien uten hemmelige token (invitasjons- og reset-lenker). */
+export const safePath = (path: string) => path.replace(/\/(invite|reset)\/.*/, '/$1/…');
+
+/** Uventede feil logges i konsollen og sendes til API-loggen (maks 5 per sidevisning). Token i invitasjons-/reset-lenker fjernes. */
+@Injectable()
+export class ClientErrorHandler implements ErrorHandler {
+  private sent = 0;
+
+  handleError(error: unknown) {
+    console.error(error);
+    if (isDevMode() || this.sent++ >= 5) return;
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    fetch('/api/client-errors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: message.slice(0, 500), url: safePath(location.pathname), version: APP_VERSION }), keepalive: true }).catch(() => {});
+  }
+}
 
 /** Bearer på /api-kall. 401 → refresh én gang → prøv igjen → ellers logg ut. */
 export const tokenInterceptor: HttpInterceptorFn = (req, next) => {
