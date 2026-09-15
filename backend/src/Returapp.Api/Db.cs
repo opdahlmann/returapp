@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Conventions;
+using MongoDB.Bson.Serialization.IdGenerators;
 using MongoDB.Driver;
 using Returapp.Api.Models;
 
@@ -12,6 +13,8 @@ public class Db
         new CamelCaseElementNameConvention(),
         new IgnoreExtraElementsConvention(true),
         new IgnoreIfNullConvention(true),
+        // Tom string-Id ("") får en ObjectId-streng ved insert; seed-dokumenter beholder egne id-er ("omb", "u1").
+        new DelegatePostProcessingConvention("stringIds", cm => { if (cm.IdMemberMap?.MemberType == typeof(string)) cm.IdMemberMap.SetIdGenerator(StringObjectIdGenerator.Instance); }),
     }, _ => true);
 
     public IMongoDatabase Database { get; }
@@ -29,6 +32,9 @@ public class Db
     public IMongoCollection<Category> Categories => Database.GetCollection<Category>("categories");
     public IMongoCollection<Postnr> Postnr => Database.GetCollection<Postnr>("postnr");
     public IMongoCollection<SupportCase> Support => Database.GetCollection<SupportCase>("support");
+    public IMongoCollection<Otp> Otps => Database.GetCollection<Otp>("otps");
+    public IMongoCollection<Invite> Invites => Database.GetCollection<Invite>("invites");
+    public IMongoCollection<PasswordReset> PasswordResets => Database.GetCollection<PasswordReset>("passwordResets");
     IMongoCollection<BsonDocument> Raw(string name) => Database.GetCollection<BsonDocument>(name);
 
     public async Task Ping() => await Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));

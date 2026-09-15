@@ -16,6 +16,7 @@ public class User
     public string? Vehicle { get; set; }
     public List<string>? Areas { get; set; } // kommuner, for sjåfør
     public bool Active { get; set; } = true;
+    public List<RefreshToken> RefreshTokens { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
