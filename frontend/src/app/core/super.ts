@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Department } from './company';
+import { MONTHS } from './format';
 import { Role } from './roles';
 
 export interface PlatformStats {
@@ -80,8 +81,6 @@ export class SuperApi {
   close = (id: string) => firstValueFrom(this.http.post(`/api/support/${id}/close`, {}));
   setCompany = (pickupId: string, companyId: string) => firstValueFrom(this.http.post(`/api/pickups/${pickupId}/company`, { companyId }));
 }
-
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
 
 /** "Aug 2023" for godkjente, "Søkte 9. sep" for søknader – som prototypen. */
 export function sinceText(c: { since: string | null; createdAt: string; status: string }): string {

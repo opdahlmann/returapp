@@ -101,10 +101,10 @@ public static class CompanyEndpoints
 
         // Tall til Firma- og Statistikk-skjermen. Beregnes i minnet fra firmaets ordre siste 120 dager.
         // ponytail: in-memory over 120 dager; bytt til én $facet-pipeline hvis et firma får mange tusen ordre i måneden
-        companies.MapGet("/{id}/stats", async (string id, HttpContext ctx, Db db, IConfiguration cfg) =>
+        companies.MapGet("/{id}/stats", async (string id, HttpContext ctx, Db db) =>
         {
             if (!ctx.User.Caller().CanManageCompany(id)) return AuthEndpoints.Err(404, "Fant ikke firmaet");
-            return Results.Ok(await Stats(db, cfg, id, DateTime.UtcNow));
+            return Results.Ok(await Stats(db, id, DateTime.UtcNow));
         });
 
         // Kommunene admin kan velge: alle i fylkene firmaet holder til/dekker (fylke = to første siffer i kommunenr), pluss de som allerede dekkes.
@@ -141,7 +141,7 @@ public static class CompanyEndpoints
 
     static readonly string[] MonthNames = ["januar", "februar", "mars", "april", "mai", "juni", "juli", "august", "september", "oktober", "november", "desember"];
 
-    public static async Task<object> Stats(Db db, IConfiguration cfg, string companyId, DateTime nowUtc)
+    public static async Task<object> Stats(Db db, string companyId, DateTime nowUtc)
     {
         var local = Fmt.Local(nowUtc);
         var weekStart = TimeZoneInfo.ConvertTimeToUtc(local.Date.AddDays(-((7 + (int)local.DayOfWeek - 1) % 7)), Fmt.Oslo);
@@ -172,7 +172,7 @@ public static class CompanyEndpoints
             monthCount = month.Count,
             monthKg,
             noDeviationPct = month.Count + monthDeviations == 0 ? 100 : (int)Math.Round(100.0 * month.Count / (month.Count + monthDeviations)),
-            co2Kg = Weight.Co2(monthKg, cfg),
+            co2Kg = Weight.Co2(monthKg),
             perCategory = top,
         };
     }

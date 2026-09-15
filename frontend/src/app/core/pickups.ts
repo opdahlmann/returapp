@@ -38,7 +38,6 @@ export interface Pickup {
   open: boolean;
   companyId: string | null;
   companyName: string | null;
-  companyPhone: string | null;
   driverId: string | null;
   driverName: string | null;
   driverPhone: string | null;

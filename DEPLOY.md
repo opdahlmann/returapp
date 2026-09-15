@@ -38,9 +38,6 @@ Mongo__ConnectionString=mongodb://<bruker>:<passord>@<host>:<port>/admin?authSou
 Mongo__Database=<Returapp2Dev i dev | egen prod-database>
 
 Jwt__Secret=<min 32 tilfeldige tegn – ulik i dev og prod>
-Jwt__Issuer=returapp
-Jwt__AccessMinutes=15
-Jwt__RefreshDays=30
 
 Sms__Provider=<Console i dev | Twilio i prod>
 Sms__From=Returapp
@@ -62,7 +59,6 @@ Push__Subject=mailto:drift@returapp.no
 
 App__BaseUrl=<https://dev-app.returapp.no i dev | https://app.returapp.no i prod>
 App__SeedDemo=<true i dev | false i prod>
-App__Co2Factor=0.9
 ```
 
 **Aldri** sett `App__DevEndpoints` i Dokploy. Den åpner `/api/dev/*`: innloggingskoder (`last-sms`), e-poster med lenker (`last-mail`), sletting av testdata og tilbakestilling av demo-data. API-et logger en advarsel ved oppstart hvis den er på.

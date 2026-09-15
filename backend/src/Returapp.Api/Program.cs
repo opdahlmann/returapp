@@ -54,8 +54,8 @@ builder.Services.AddAuthentication().AddJwtBearer(o =>
     o.MapInboundClaims = false;
     o.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidIssuer = Jwt.Issuer(builder.Configuration),
-        ValidAudience = Jwt.Issuer(builder.Configuration),
+        ValidIssuer = Jwt.Issuer,
+        ValidAudience = Jwt.Issuer,
         IssuerSigningKey = Jwt.Key(builder.Configuration),
         RoleClaimType = "roles",
         NameClaimType = "sub",
@@ -63,9 +63,6 @@ builder.Services.AddAuthentication().AddJwtBearer(o =>
 });
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("user", p => p.RequireClaim("sub"))
-    .AddPolicy("giver", p => p.RequireRole("giver"))
-    .AddPolicy("driver", p => p.RequireRole("driver"))
-    .AddPolicy("admin", p => p.RequireRole("admin"))
     .AddPolicy("super", p => p.RequireRole("super"));
 builder.Services.AddRateLimiter(o =>
 {
@@ -131,7 +128,6 @@ app.MapPost("/api/client-errors", (ClientError e, ILogger<ClientError> log) =>
     return Results.NoContent();
     static string Trim(string? s, int max) => (s ?? "").ReplaceLineEndings(" ") is var t && t.Length > max ? t[..max] : t;
 }).RequireRateLimiting("client-errors");
-app.MapSupport();
 
 app.Run();
 

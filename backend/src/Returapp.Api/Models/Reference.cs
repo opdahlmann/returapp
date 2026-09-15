@@ -59,8 +59,6 @@ public class StoredFile
 {
     public string Id { get; set; } = "";
     public string Kind { get; set; } = "original"; // original | thumb
-    public string ContentType { get; set; } = "image/jpeg";
-    public int Size { get; set; }
     public int W { get; set; }
     public int H { get; set; }
     public byte[] Data { get; set; } = [];

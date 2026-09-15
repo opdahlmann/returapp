@@ -11,7 +11,7 @@ describe('format', () => {
 
   it('co2 og tall', () => {
     expect(co2(480)).toBe(432);
-    expect(num(1284)).toBe('1 284');
+    expect(num(1284)).toBe('1\u00a0284');
   });
 
   it('relDay', () => {

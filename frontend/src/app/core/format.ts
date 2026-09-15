@@ -2,7 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 const DAYS = ['Søn', 'Man', 'Tir', 'Ons', 'Tor', 'Fre', 'Lør'];
 const DAYS_LONG = ['Søndag', 'Mandag', 'Tirsdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lørdag'];
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
+export const MONTHS = ['jan', 'feb', 'mar', 'apr', 'mai', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'des'];
 const MONTHS_LONG = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'desember'];
 
 /** 720 → "720 kg", 1400 → "1,4 t" */
@@ -10,13 +10,12 @@ export function kg(n: number): string {
   return n >= 1000 ? `${(n / 1000).toFixed(1).replace('.', ',')} t` : `${Math.round(n)} kg`;
 }
 
-export function co2(kgValue: number, factor = 0.9): number {
-  return Math.round(kgValue * factor);
-}
+/** Samme faktor som API-et (Services/Weight.cs). */
+export const co2 = (kgValue: number) => Math.round(kgValue * 0.9);
 
-/** Tall med mellomrom som tusenskille: 1284 → "1 284" */
+/** Tall med tusenskille som i norsk: 1284 → "1 284" (hardt mellomrom, så tallet ikke brytes over to linjer) */
 export function num(n: number): string {
-  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return Math.round(n).toLocaleString('nb-NO');
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

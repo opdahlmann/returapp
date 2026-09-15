@@ -3,7 +3,6 @@ namespace Returapp.Api.Models;
 public class Pickup
 {
     public string Id { get; set; } = ""; // "R-2041"
-    public int Seq { get; set; }
     public string CategoryId { get; set; } = "";
     public string Title { get; set; } = "";
     public string Desc { get; set; } = "";

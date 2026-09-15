@@ -23,7 +23,7 @@ public static class PickupEndpoints
     public static bool CanRead(Caller c, Pickup p) =>
         c.Has("super")
         || (c.UserId != null && p.GiverUserId == c.UserId)
-        || (c.IsGuest && c.GuestId != null && p.GuestId == c.GuestId)
+        || (c.IsGuest && p.GuestId == c.GuestId)
         || ((c.Has("admin") || c.Has("driver")) && p.CompanyId != null && p.CompanyId == c.CompanyId);
 
     public static void MapPickups(this WebApplication app)
@@ -59,7 +59,7 @@ public static class PickupEndpoints
             var coords = await geo.Lookup(b.Address!.Trim(), postnr.Id);
             var p = new Pickup
             {
-                Id = id, Seq = int.Parse(id[2..]), CategoryId = cat.Id, Title = $"{Fmt.Qty(b.Qty)} {b.Unit} {cat.Name.ToLower(Fmt.Nb)}",
+                Id = id, CategoryId = cat.Id, Title = $"{Fmt.Qty(b.Qty)} {b.Unit} {cat.Name.ToLower(Fmt.Nb)}",
                 Desc = (b.Desc ?? "").Trim(), GiverUserId = user?.Id, GuestId = caller.IsGuest ? caller.GuestId : null, GuestPhone = caller.IsGuest ? phone : null,
                 GiverOrg = !string.IsNullOrWhiteSpace(user?.Org) ? user.Org : $"Privat – {contact}", Contact = contact, Phone = phone,
                 Address = b.Address.Trim(), Postnr = postnr.Id, Kommune = postnr.Kommune, Lat = coords?.Lat, Lng = coords?.Lng,
@@ -230,7 +230,7 @@ public static class PickupEndpoints
                     var cat = await db.Categories.Find(x => x.Id == updated.CategoryId).Project(x => x.Name).FirstOrDefaultAsync() ?? "Annet";
                     var driverName = await db.Users.Find(u => u.Id == c.UserId).Project(u => u.Name).FirstOrDefaultAsync() ?? "";
                     var companyName = updated.CompanyId == null ? "" : await db.Companies.Find(x => x.Id == updated.CompanyId).Project(x => x.Name).FirstOrDefaultAsync() ?? "";
-                    var pdf = Pdf.Receipt(updated, cat, driverName, companyName, Weight.Co2(kg, cfg));
+                    var pdf = Pdf.Receipt(updated, cat, driverName, companyName, Weight.Co2(kg));
                     try { await mail.Send(new Mail(giver.Email, $"Kvittering {id} – hentet og bekreftet", body, [new MailAttachment($"kvittering-{id}.pdf", pdf, "application/pdf")])); }
                     catch { /* e-post er best-effort; in-app og SMS er allerede sendt */ }
                 }
@@ -307,14 +307,14 @@ public static class PickupEndpoints
             return Results.Ok((await Dtos(db, [updated]))[0]);
         });
 
-        g.MapGet("/{id}/receipt.pdf", async (string id, HttpContext ctx, Db db, IConfiguration cfg) =>
+        g.MapGet("/{id}/receipt.pdf", async (string id, HttpContext ctx, Db db) =>
         {
             var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
             if (p == null || !CanRead(ctx.User.Caller(), p) || p.Status != PickupStatus.Hentet) return AuthEndpoints.Err(404, "Fant ingen kvittering");
             var cat = await db.Categories.Find(c => c.Id == p.CategoryId).FirstOrDefaultAsync();
             var driver = p.DriverId == null ? "" : await db.Users.Find(u => u.Id == p.DriverId).Project(u => u.Name).FirstOrDefaultAsync() ?? "";
             var company = p.CompanyId == null ? "" : await db.Companies.Find(c => c.Id == p.CompanyId).Project(c => c.Name).FirstOrDefaultAsync() ?? "";
-            return Results.File(Pdf.Receipt(p, cat?.Name ?? "Annet", driver, company, Weight.Co2(p.EstKg, cfg)), "application/pdf", $"kvittering-{p.Id}.pdf");
+            return Results.File(Pdf.Receipt(p, cat?.Name ?? "Annet", driver, company, Weight.Co2(p.EstKg)), "application/pdf", $"kvittering-{p.Id}.pdf");
         });
 
         g.MapGet("/{id}/label.pdf", async (string id, HttpContext ctx, Db db, IConfiguration cfg) =>
@@ -359,7 +359,7 @@ public static class PickupEndpoints
                 p.Id, p.CategoryId, categoryName = cat?.Name ?? "Annet", categoryIcon = cat?.Icon ?? "annet", p.Title, p.Desc,
                 p.GiverUserId, p.GiverOrg, p.Contact, p.Phone, p.Address, p.Postnr, p.Kommune, p.Lat, p.Lng,
                 p.Qty, p.Unit, p.Cond, p.Dims, p.Day, p.Slot, p.Unattended, p.Status, p.Open,
-                p.CompanyId, companyName = company?.Name, companyPhone = company?.Phone,
+                p.CompanyId, companyName = company?.Name,
                 p.DriverId, driverName = driver?.Name, driverPhone = driver?.Phone,
                 p.Photos, p.PickedPhotos, p.EstKg, p.PickedAt, p.PickedQty, p.PickedNote, p.Deviation, p.CancelledAt, p.StatusLog, p.CreatedAt,
                 messageCount = p.Messages.Count, lastMessage = p.Messages.LastOrDefault(),

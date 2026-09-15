@@ -12,6 +12,7 @@ public static class SuperEndpoints
     public record UserInvite(string? Name, string? Email, string? Phone, Roles? Roles, string? CompanyId);
     public record NoticeBody(string? Text, string? To);
     public record ReplyBody(string? Text);
+    public record SupportBody(string? Text);
     public record ApplyBody(string? Name, string? Orgnr, string? City, string? Phone, string? ContactName, string? Email, List<string>? Kommuner);
 
     public static void MapSuper(this WebApplication app)
@@ -138,6 +139,17 @@ public static class SuperEndpoints
             await notify.PushMany(recipients, "Systemvarsel", text, "/");
             return Results.Ok(notice);
         });
+
+        app.MapPost("/api/support", async (SupportBody b, HttpContext ctx, Db db) =>
+        {
+            var text = (b.Text ?? "").Trim();
+            if (text.Length < 3 || text.Length > 2000) return AuthEndpoints.Err(400, "Skriv hva det gjelder (maks 2000 tegn)");
+            var user = await db.Users.Find(u => u.Id == ctx.User.Caller().UserId).FirstAsync();
+            var org = user.CompanyId == null ? user.Org : await db.Companies.Find(c => c.Id == user.CompanyId).Project(c => c.Name).FirstOrDefaultAsync() ?? user.Org;
+            var sc = new SupportCase { FromUserId = user.Id, FromName = user.Name, Org = org, Text = text, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+            await db.Support.InsertOneAsync(sc);
+            return Results.Created($"/api/support/{sc.Id}", new { sc.Id });
+        }).RequireAuthorization("user");
 
         s.MapGet("/support", async (Db db) => Results.Ok(await db.Support.Find(_ => true).SortByDescending(x => x.CreatedAt).Limit(100).ToListAsync()));
 

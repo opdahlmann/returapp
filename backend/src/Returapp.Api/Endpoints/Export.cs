@@ -17,12 +17,12 @@ public static class ExportEndpoints
         [PickupStatus.Hentet] = "Hentet", [PickupStatus.Avvik] = "Avvik", [PickupStatus.Avbrutt] = "Avbrutt",
     };
 
-    record Data(string Heading, string Period, List<Pickup> Pickups, Dictionary<string, string> Cats, Dictionary<string, string> Companies, Dictionary<string, string> Drivers, IConfiguration Cfg)
+    record Data(string Heading, string Period, List<Pickup> Pickups, Dictionary<string, string> Cats, Dictionary<string, string> Companies, Dictionary<string, string> Drivers)
     {
         public string Cat(Pickup p) => Cats.GetValueOrDefault(p.CategoryId, "Annet");
         public string Company(Pickup p) => p.CompanyId == null ? "" : Companies.GetValueOrDefault(p.CompanyId, "");
         public string Driver(Pickup p) => p.DriverId == null ? "" : Drivers.GetValueOrDefault(p.DriverId, "");
-        public int Co2(Pickup p) => Weight.Co2(p.EstKg, Cfg);
+        public int Co2(Pickup p) => Weight.Co2(p.EstKg);
         public List<Pickup> Picked => Pickups.Where(p => p.Status == PickupStatus.Hentet).ToList();
 
         public List<object?[]> Rows() => Pickups.Select(p => new object?[]
@@ -34,12 +34,12 @@ public static class ExportEndpoints
 
         /// Miljøeffekt per kategori regnes bare for hentede ordre.
         public List<(string Name, int Count, int Kg, int Co2)> PerCategory() => Picked.GroupBy(Cat)
-            .Select(g => (g.Key, g.Count(), g.Sum(p => p.EstKg), Weight.Co2(g.Sum(p => p.EstKg), Cfg))).OrderByDescending(x => x.Item3).ToList();
+            .Select(g => (g.Key, g.Count(), g.Sum(p => p.EstKg), Weight.Co2(g.Sum(p => p.EstKg)))).OrderByDescending(x => x.Item3).ToList();
     }
 
     public static void MapExport(this WebApplication app)
     {
-        app.MapGet("/api/export/pickups.{format}", async (string format, string? scope, DateOnly? from, DateOnly? to, HttpContext ctx, Db db, IConfiguration cfg) =>
+        app.MapGet("/api/export/pickups.{format}", async (string format, string? scope, DateOnly? from, DateOnly? to, HttpContext ctx, Db db) =>
         {
             if (format is not ("csv" or "xlsx" or "pdf")) return AuthEndpoints.Err(404, "Ukjent format");
             var c = ctx.User.Caller();
@@ -70,7 +70,7 @@ public static class ExportEndpoints
             var data = new Data(heading, $"{first:dd.MM.yyyy}–{to ?? Fmt.Today():dd.MM.yyyy}", list,
                 (await db.Categories.Find(_ => true).ToListAsync()).ToDictionary(x => x.Id, x => x.Name),
                 (await db.Companies.Find(x => companyIds.Contains(x.Id)).ToListAsync()).ToDictionary(x => x.Id, x => x.Name),
-                (await db.Users.Find(u => driverIds.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id, u => u.Name), cfg);
+                (await db.Users.Find(u => driverIds.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id, u => u.Name));
 
             var name = $"returapp-hentinger-{Fmt.Today():yyyy-MM-dd}.{format}";
             return format switch

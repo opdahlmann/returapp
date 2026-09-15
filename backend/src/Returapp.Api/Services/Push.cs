@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Net;
-using System.Text.Json;
 using Returapp.Api.Models;
 using WebPush;
 
@@ -47,17 +46,4 @@ public class WebPushSender(IConfiguration cfg, ILogger<WebPushSender> log) : IPu
             return true;
         }
     }
-}
-
-public static class PushPayload
-{
-    /// Format Angulars service worker forstår: viser varsel og åpner url ved klikk.
-    public static string For(string title, string body, string url) => JsonSerializer.Serialize(new
-    {
-        notification = new
-        {
-            title, body, icon = "/icons/icon-192x192.png", badge = "/icons/icon-192x192.png",
-            data = new { onActionClick = new { @default = new { operation = "navigateLastFocusedOrOpen", url } } },
-        },
-    });
 }

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MongoDB.Driver;
 using Returapp.Api.Models;
 
@@ -36,7 +37,15 @@ public class Notifier(Db db, ISmsSender sms, IMailSender mail, IPushSender push,
     async Task Push(User u, string title, string body, string url)
     {
         if (!u.Notif.Push || u.PushSubscriptions.Count == 0) return;
-        var payload = PushPayload.For(title, body, url);
+        // Format Angulars service worker forstår: viser varsel og åpner url ved klikk.
+        var payload = JsonSerializer.Serialize(new
+        {
+            notification = new
+            {
+                title, body, icon = "/icons/icon-192x192.png", badge = "/icons/icon-192x192.png",
+                data = new { onActionClick = new { @default = new { operation = "navigateLastFocusedOrOpen", url } } },
+            },
+        });
         foreach (var sub in u.PushSubscriptions)
             if (!await push.Send(sub, payload))
                 await db.Users.UpdateOneAsync(x => x.Id == u.Id, Builders<User>.Update.PullFilter(x => x.PushSubscriptions, s => s.Endpoint == sub.Endpoint));

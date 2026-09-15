@@ -48,10 +48,10 @@ public static class Seeder
             var photos = new List<Photo>();
             for (var i = 0; i < DemoPhotoCounts[p.Id]; i++)
             {
-                var img = Images.Process(Images.Demo(p.Seq * 31 + i))!;
-                var thumb = new StoredFile { Kind = "thumb", Data = img.Thumb, Size = img.Thumb.Length, W = img.ThumbW, H = img.ThumbH, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
+                var img = Images.Process(Images.Demo(int.Parse(p.Id[2..]) * 31 + i))!;
+                var thumb = new StoredFile { Kind = "thumb", Data = img.Thumb, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
                 await db.Files.InsertOneAsync(thumb);
-                var file = new StoredFile { Kind = "original", Data = img.Original, Size = img.Original.Length, W = img.W, H = img.H, ThumbId = thumb.Id, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
+                var file = new StoredFile { Kind = "original", Data = img.Original, W = img.W, H = img.H, ThumbId = thumb.Id, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
                 await db.Files.InsertOneAsync(file);
                 photos.Add(new Photo(file.Id, thumb.Id, img.W, img.H));
             }
@@ -172,7 +172,7 @@ public static class Seeder
                 log.Add(new(status == PickupStatus.Tildelt ? PickupStatus.Tildelt : PickupStatus.Planlagt, created.AddHours(2), "u2"));
             return new Pickup
             {
-                Id = id, Seq = int.Parse(id[2..]), CategoryId = cat, Title = title, Desc = desc, GiverUserId = giverUserId, GiverOrg = org, Contact = contact,
+                Id = id, CategoryId = cat, Title = title, Desc = desc, GiverUserId = giverUserId, GiverOrg = org, Contact = contact,
                 Phone = Phone.Normalize(phone)!, Address = addr, Postnr = postnr, Kommune = kommune[postnr], Qty = qty, Unit = unit, Cond = cond, Dims = dims,
                 Day = day, Slot = slot, Unattended = unattended, Status = status, CompanyId = company, DriverId = driver, Open = open, EstKg = kg,
                 StatusLog = log, CreatedAt = created, UpdatedAt = now,

@@ -11,5 +11,6 @@ public static class Weight
         return (int)Math.Round(category.KgPerUnit.GetValueOrDefault(key, key == "kg" ? 1 : 18) * qty);
     }
 
-    public static int Co2(double kg, IConfiguration cfg) => (int)Math.Round(kg * cfg.GetValue("App:Co2Factor", 0.9));
+    /// Samme faktor som frontend (core/format.ts), så kvittering, statistikk og eksport viser like tall.
+    public static int Co2(double kg) => (int)Math.Round(kg * 0.9);
 }

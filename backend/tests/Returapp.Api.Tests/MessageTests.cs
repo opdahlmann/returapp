@@ -86,7 +86,6 @@ public class MessageTests(ApiFixture api) : IAsyncLifetime
     {
         var d = await As(driver);
         Assert.Equal(HttpStatusCode.BadRequest, (await d.PostAsJsonAsync("/api/me/push", new { endpoint = "http://usikker" })).StatusCode);
-        var me = await d.GetFromJsonAsync<JsonElement>("/api/me");
-        Assert.Equal(0, me.GetProperty("pushDevices").GetInt32());
+        Assert.Empty((await api.Db.Users.Find(u => u.Id == driver.Id).FirstAsync()).PushSubscriptions);
     }
 }

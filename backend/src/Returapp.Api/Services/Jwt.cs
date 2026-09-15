@@ -10,10 +10,8 @@ namespace Returapp.Api.Services;
 public class Jwt(IConfiguration cfg)
 {
     public static SymmetricSecurityKey Key(IConfiguration cfg) => new(Encoding.UTF8.GetBytes(cfg["Jwt:Secret"]!));
-    public static string Issuer(IConfiguration cfg) => cfg["Jwt:Issuer"] ?? "returapp";
-
-    public int AccessMinutes => cfg.GetValue("Jwt:AccessMinutes", 15);
-    public int RefreshDays => cfg.GetValue("Jwt:RefreshDays", 30);
+    public const string Issuer = "returapp";
+    public const int AccessMinutes = 15, RefreshDays = 30;
 
     public string Access(User u)
     {
@@ -26,8 +24,8 @@ public class Jwt(IConfiguration cfg)
 
     string Create(Dictionary<string, object> claims, TimeSpan lifetime) => new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
     {
-        Issuer = Issuer(cfg),
-        Audience = Issuer(cfg),
+        Issuer = Issuer,
+        Audience = Issuer,
         Claims = claims,
         Expires = DateTime.UtcNow.Add(lifetime),
         SigningCredentials = new SigningCredentials(Key(cfg), SecurityAlgorithms.HmacSha256),
@@ -46,8 +44,9 @@ public class Jwt(IConfiguration cfg)
     public static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 }
 
-public record Caller(string? UserId, bool IsGuest, string? GuestId, string[] Roles, string? CompanyId)
+public record Caller(string? UserId, string? GuestId, string[] Roles, string? CompanyId)
 {
+    public bool IsGuest => GuestId != null;
     public bool Has(string role) => Roles.Contains(role);
 
     /// Superbruker alle firma, admin bare eget.
@@ -58,7 +57,6 @@ public static class CallerExtensions
 {
     public static Caller Caller(this ClaimsPrincipal p) => new(
         p.FindFirstValue("sub"),
-        p.FindFirstValue("guest") == "true",
         p.FindFirstValue("gid"),
         p.FindAll("roles").Select(c => c.Value).ToArray(),
         p.FindFirstValue("companyId"));

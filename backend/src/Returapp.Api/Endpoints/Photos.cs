@@ -26,9 +26,9 @@ public static class PhotoEndpoints
 
             var caller = ctx.User.Caller();
             var now = DateTime.UtcNow;
-            var thumb = new StoredFile { Kind = "thumb", Data = img.Thumb, Size = img.Thumb.Length, W = img.ThumbW, H = img.ThumbH, OwnerUserId = caller.UserId, GuestId = caller.GuestId, OrphanExpires = now.AddHours(24), CreatedAt = now };
+            var thumb = new StoredFile { Kind = "thumb", Data = img.Thumb, OwnerUserId = caller.UserId, GuestId = caller.GuestId, OrphanExpires = now.AddHours(24), CreatedAt = now };
             await db.Files.InsertOneAsync(thumb);
-            var doc = new StoredFile { Kind = "original", Data = img.Original, Size = img.Original.Length, W = img.W, H = img.H, ThumbId = thumb.Id, OwnerUserId = caller.UserId, GuestId = caller.GuestId, OrphanExpires = now.AddHours(24), CreatedAt = now };
+            var doc = new StoredFile { Kind = "original", Data = img.Original, W = img.W, H = img.H, ThumbId = thumb.Id, OwnerUserId = caller.UserId, GuestId = caller.GuestId, OrphanExpires = now.AddHours(24), CreatedAt = now };
             await db.Files.InsertOneAsync(doc);
             return Results.Ok(new { fileId = doc.Id, thumbId = thumb.Id, w = img.W, h = img.H });
         }).RequireAuthorization().DisableAntiforgery();
@@ -44,7 +44,7 @@ public static class PhotoEndpoints
             if (!allowed) return AuthEndpoints.Err(404, "Fant ikke bildet");
             ctx.Response.Headers.CacheControl = "private, max-age=604800, immutable";
             ctx.Response.Headers.ContentDisposition = "inline";
-            return Results.File(file.Data, file.ContentType);
+            return Results.File(file.Data, "image/jpeg"); // Images.Process koder alltid om til JPEG
         }).RequireAuthorization();
     }
 

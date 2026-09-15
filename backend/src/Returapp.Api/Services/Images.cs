@@ -2,12 +2,12 @@ using SkiaSharp;
 
 namespace Returapp.Api.Services;
 
-public record ProcessedImage(byte[] Original, int W, int H, byte[] Thumb, int ThumbW, int ThumbH);
+public record ProcessedImage(byte[] Original, int W, int H, byte[] Thumb);
 
 /// Bildebehandling i minnet med SkiaSharp (MIT): roter etter EXIF, skaler ned, JPEG uten metadata (GPS fjernes ved re-koding).
 public static class Images
 {
-    public static ProcessedImage? Process(byte[] input, int maxSide = 2048, int thumbSide = 400)
+    public static ProcessedImage? Process(byte[] input)
     {
         using var data = SKData.CreateCopy(input);
         using var codec = SKCodec.Create(data);
@@ -15,9 +15,9 @@ public static class Images
         using var decoded = SKBitmap.Decode(codec);
         if (decoded == null) return null;
         using var oriented = Orient(decoded, codec.EncodedOrigin);
-        using var big = Fit(oriented, maxSide);
-        using var small = Fit(big, thumbSide);
-        return new ProcessedImage(Jpeg(big, 85), big.Width, big.Height, Jpeg(small, 80), small.Width, small.Height);
+        using var big = Fit(oriented, 2048);
+        using var small = Fit(big, 400);
+        return new ProcessedImage(Jpeg(big, 85), big.Width, big.Height, Jpeg(small, 80));
     }
 
     public static byte[] Jpeg(SKBitmap bitmap, int quality)

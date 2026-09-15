@@ -2,22 +2,26 @@ import { APIRequestContext, expect, Page } from '@playwright/test';
 
 export const API = process.env['E2E_API_URL'] ?? 'http://localhost:5080';
 
-export async function devCode(request: APIRequestContext, phone: string): Promise<string> {
-  await expect.poll(async () => (await request.get(`${API}/api/dev/last-sms?phone=${encodeURIComponent(phone)}`)).status()).toBe(200);
-  const { text } = await (await request.get(`${API}/api/dev/last-sms?phone=${encodeURIComponent(phone)}`)).json();
-  return /\d{6}/.exec(text)![0];
+/** Venter til siste SMS/e-post fra dev-endepunktet inneholder mønsteret, og returnerer treffet. */
+async function devMatch(request: APIRequestContext, url: string, field: 'text' | 'body', re: RegExp): Promise<string> {
+  let value = '';
+  await expect
+    .poll(async () => {
+      const res = await request.get(url);
+      value = res.ok() ? (await res.json())[field] : '';
+      return re.test(value);
+    })
+    .toBe(true);
+  return re.exec(value)![0];
 }
 
+/** Engangskoden fra siste SMS til nummeret (Console-SMS i dev). */
+export const devCode = (request: APIRequestContext, phone: string) =>
+  devMatch(request, `${API}/api/dev/last-sms?phone=${encodeURIComponent(phone)}`, 'text', /\d{6}/);
+
 /** Lenke-stien (f.eks. /invite/abc) fra siste e-post til adressen (Console-mail i dev). */
-export async function mailLink(request: APIRequestContext, to: string, path: 'invite' | 'reset'): Promise<string> {
-  let body = '';
-  await expect.poll(async () => {
-    const res = await request.get(`${API}/api/dev/last-mail?to=${encodeURIComponent(to)}`);
-    body = res.ok() ? (await res.json()).body : '';
-    return new RegExp(`/${path}/`).test(body);
-  }).toBe(true);
-  return new RegExp(`/${path}/[\\w-]+`).exec(body)![0];
-}
+export const mailLink = (request: APIRequestContext, to: string, path: 'invite' | 'reset') =>
+  devMatch(request, `${API}/api/dev/last-mail?to=${encodeURIComponent(to)}`, 'body', new RegExp(`/${path}/[\\w-]+`));
 
 export async function loginEmail(page: Page, email: string, password = 'demo1234') {
   await page.goto('/login');

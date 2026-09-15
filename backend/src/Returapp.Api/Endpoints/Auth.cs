@@ -246,13 +246,13 @@ public static class AuthEndpoints
     {
         var (token, hash) = Jwt.NewToken();
         await db.Users.UpdateOneAsync(u => u.Id == user.Id,
-            Builders<User>.Update.PushEach(u => u.RefreshTokens, [new RefreshToken(hash, DateTime.UtcNow.AddDays(jwt.RefreshDays))], slice: -10));
+            Builders<User>.Update.PushEach(u => u.RefreshTokens, [new RefreshToken(hash, DateTime.UtcNow.AddDays(Jwt.RefreshDays))], slice: -10));
         return new { accessToken = jwt.Access(user), refreshToken = token, user = await Me(db, user) };
     }
 
     public static async Task<object> Me(Db db, User u)
     {
         var company = u.CompanyId == null ? null : await db.Companies.Find(c => c.Id == u.CompanyId).Project(c => new { c.Id, c.Name }).FirstOrDefaultAsync();
-        return new { u.Id, u.Name, u.Email, u.Phone, u.Org, u.Roles, u.CompanyId, company, u.Postnr, u.Theme, u.Notif, u.Vehicle, u.Areas, pushDevices = u.PushSubscriptions.Count };
+        return new { u.Id, u.Name, u.Email, u.Phone, u.Org, u.Roles, u.CompanyId, company, u.Postnr, u.Theme, u.Notif, u.Vehicle, u.Areas };
     }
 }
