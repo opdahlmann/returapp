@@ -18,6 +18,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<Jwt>();
 builder.Services.AddScoped<OtpService>();
+builder.Services.AddScoped<Notifier>();
+builder.Services.AddScoped<Coverage>();
 if (builder.Configuration["Sms:Provider"] == "Twilio") builder.Services.AddHttpClient<ISmsSender, TwilioSmsSender>();
 else builder.Services.AddSingleton<ConsoleSmsSender>().AddSingleton<ISmsSender>(sp => sp.GetRequiredService<ConsoleSmsSender>());
 if (builder.Configuration["Mail:Provider"] == "Smtp") builder.Services.AddSingleton<IMailSender, SmtpMailSender>();
@@ -81,6 +83,7 @@ app.MapGet("/ready", async () =>
 });
 app.MapAuth();
 app.MapReference();
+app.MapCompanies();
 app.MapSupport();
 
 app.Run();

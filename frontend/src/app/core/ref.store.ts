@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { inject, Injectable } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 export interface PostnrInfo {
@@ -11,11 +11,31 @@ export interface PostnrInfo {
   companyName: string | null;
 }
 
-/** Referansedata med cache: postnummer-oppslag (og kategorier fra fase 4). */
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  order: number;
+  kgPerUnit: Record<string, number>;
+}
+
+/** Referansedata med cache: kategorier og postnummer-oppslag. */
 @Injectable({ providedIn: 'root' })
 export class RefStore {
   private http = inject(HttpClient);
   private postnrCache = new Map<string, Promise<PostnrInfo | null>>();
+  private categoriesLoaded?: Promise<void>;
+  readonly categories = signal<Category[]>([]);
+
+  loadCategories(force = false): Promise<void> {
+    if (force || !this.categoriesLoaded)
+      this.categoriesLoaded = firstValueFrom(this.http.get<Category[]>('/api/categories')).then((c) => this.categories.set(c));
+    return this.categoriesLoaded;
+  }
+
+  category(id: string | null | undefined): Category {
+    return this.categories().find((c) => c.id === id) ?? { id: 'annet', name: 'Annet', icon: 'annet', order: 99, kgPerUnit: {} };
+  }
 
   postnr(nr: string | null | undefined): Promise<PostnrInfo | null> {
     if (!nr || !/^\d{4}$/.test(nr)) return Promise.resolve(null);

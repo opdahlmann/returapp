@@ -49,6 +49,9 @@ public class Jwt(IConfiguration cfg)
 public record Caller(string? UserId, bool IsGuest, string? GuestId, string[] Roles, string? CompanyId)
 {
     public bool Has(string role) => Roles.Contains(role);
+
+    /// Superbruker alle firma, admin bare eget.
+    public bool CanManageCompany(string companyId) => Has("super") || (Has("admin") && CompanyId == companyId);
 }
 
 public static class CallerExtensions

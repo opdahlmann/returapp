@@ -31,3 +31,25 @@ public class SupportCase
 }
 
 public record SupportReply(string ByUserId, string Text, DateTime At);
+
+public class Notification
+{
+    public string Id { get; set; } = "";
+    public string UserId { get; set; } = "";
+    public string Type { get; set; } = "";
+    public string Title { get; set; } = "";
+    public string Body { get; set; } = "";
+    public string? PickupId { get; set; }
+    public DateTime? ReadAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CoverageAlert
+{
+    public string Id { get; set; } = "";
+    public string Postnr { get; set; } = "";
+    public string? UserId { get; set; }
+    public string? Phone { get; set; }
+    public DateTime? NotifiedAt { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

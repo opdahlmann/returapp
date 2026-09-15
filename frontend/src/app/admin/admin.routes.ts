@@ -15,5 +15,6 @@ export default [
   { path: 'inbox', data: { root: true, title: 'Innboks' }, component: Empty },
   { path: 'routes', data: { root: true, title: 'Ruteplan' }, component: Empty },
   { path: 'company', data: { root: true }, component: AdminCompany },
+  { path: 'coverage', data: { title: 'Dekningsområde' }, loadComponent: () => import('./coverage').then((m) => m.CoverageArea) },
   { path: '', pathMatch: 'full', redirectTo: 'inbox' },
 ] satisfies Routes;

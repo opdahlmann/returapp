@@ -35,6 +35,8 @@ public class Db
     public IMongoCollection<Otp> Otps => Database.GetCollection<Otp>("otps");
     public IMongoCollection<Invite> Invites => Database.GetCollection<Invite>("invites");
     public IMongoCollection<PasswordReset> PasswordResets => Database.GetCollection<PasswordReset>("passwordResets");
+    public IMongoCollection<Notification> Notifications => Database.GetCollection<Notification>("notifications");
+    public IMongoCollection<CoverageAlert> CoverageAlerts => Database.GetCollection<CoverageAlert>("coverageAlerts");
     IMongoCollection<BsonDocument> Raw(string name) => Database.GetCollection<BsonDocument>(name);
 
     public async Task Ping() => await Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));
