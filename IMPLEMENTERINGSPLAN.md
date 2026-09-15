@@ -19,6 +19,7 @@ Planen er skrevet for å kunne utføres steg for steg, gjerne av flere utviklere
 | mongosh | 2.8.3 |
 | Dev-database | MongoDB på annen server. Bruker legger inn tilkoblingsstreng i `.env.development` (ikke i git). |
 | Publisering | Dokploy, Build Type Dockerfile (ingen Docker Compose). Branch `main` = prod, `opd` = dev. Se 2.8. |
+| Domener | App: `app.returapp.no` (dev `dev-app.returapp.no`). API: `api.returapp.no` (dev `dev-api.returapp.no`). `returapp.no` uten subdomene er reservert for en egen nettside senere og er ikke en del av dette prosjektet. |
 
 ---
 
@@ -261,7 +262,7 @@ Prinsipp: **færrest mulig bevegelige deler**. Ingen lag som ikke tjener et konk
 | Sanntid chat | Polling hvert 5. sek mens tråd er åpen | Én linje i frontend. Oppgrader til SignalR (innebygd i ASP.NET) hvis behovet oppstår. |
 | PDF | "Skriv ut": print-CSS + `window.print()`. PDF-filer (kvittering som e-postvedlegg, merkelapp for "Del", rapport): `QuestPDF` i backend | Native der det holder; QuestPDF er ett bibliotek for alle tre PDF-typene. |
 | CSV | `string.Join`, ingen pakke. Excel: `ClosedXML` (kun hvis reell Excel med oppsummeringsark kreves – designet lover det, så den tas med) | |
-| QR | Frontend `qrcode` (npm, ~20 kB) genererer SVG av `https://<host>/p/R-2041`. Skanning: `BarcodeDetector` (Chrome/Android) med fallback `@zxing/browser` for iOS | |
+| QR | Frontend `qrcode` (npm, ~20 kB) genererer SVG av `{App__BaseUrl}/p/R-2041`, i prod `https://app.returapp.no/p/R-2041`. Skanning: `BarcodeDetector` (Chrome/Android) med fallback `@zxing/browser` for iOS | |
 | Kart | Skjematisk SVG som i designet. Navigasjon: `https://www.google.com/maps/dir/?api=1&destination=…` / `maps://` | Ingen kart-SDK. |
 | Geokoding (km-estimat) | Kartverket adresse-API (gratis, ingen nøkkel) ved opprettelse av ordre → lat/lng lagres | Km = sum luftlinje × 1,3. `// ponytail: luftlinje, bytt til ruting-API ved behov` |
 | Frontend state | Angular signals i services (`AuthStore`, `PickupStore`, …) | Ingen NgRx. |
@@ -284,7 +285,7 @@ returapp/
 ├── .env.development.example   # alle variabler, uten hemmeligheter (mal, sjekkes inn)
 ├── .env.development           # IKKE i git – lokal konfig inkl. dev-databasen
 ├── infra/
-│   ├── api/Dockerfile         # .NET publish → aspnet, port 8080, USER app, HEALTHCHECK /api/ready
+│   ├── api/Dockerfile         # .NET publish → aspnet, port 8080, USER app, HEALTHCHECK /ready
 │   └── web/Dockerfile         # ng build → nginx, port 80
 │       web/nginx.conf         # SPA-fallback + /api-proxy til ${API_UPSTREAM}
 ├── .github/workflows/ci.yml
@@ -415,7 +416,7 @@ Push-abonnementer ligger i `users.pushSubscriptions`. Pickups har i tillegg `gue
 
 Seed (kun når `App__SeedDemo=true` og `users` er tom): kategoriene fra designet i samme rekkefølge, postnr-registeret, og demo-dataene fra `RA` (firmaene Ombruksfabrikken/Gjenbrukslageret Oslo/Sirkula Sør, brukerne u1–u7 med passord `demo1234`, ordrene R-2028…R-2044 med relative datoer i forhold til i dag, supportsakene) pluss ~60 genererte, hentede historikk-ordre siste 60 dager (deterministisk seed så tester kan regne på dem). Da ser dev-miljøet ut som prototypen fra første start.
 
-### 2.6 API (alle under `/api`, JSON, JWT der ikke annet er sagt)
+### 2.6 API (alle under `/api`, JSON, JWT der ikke annet er sagt – unntak: `/health` og `/ready` ligger på rota)
 
 **Auth** – `POST /auth/otp/send {phone}`, `POST /auth/otp/verify {phone, code}` → tokens + roller, `POST /auth/login {email, password}`, `POST /auth/refresh`, `POST /auth/logout`, `POST /auth/guest` → anonymt gjest-token (`gid`), `POST /auth/forgot {email}`, `POST /auth/reset {token, password}`, `POST /auth/invite/accept {token, name, password?}`, `GET /me`, `PATCH /me {name, org, phone, email, postnr, theme, notif}`, `POST /me/push {subscription}`.
 
@@ -433,7 +434,7 @@ Seed (kun når `App__SeedDemo=true` og `users` er tom): kategoriene fra designet
 
 **Varsler** – `GET /notifications`, `POST /notifications/read`.
 
-**Drift** – `GET /health` (liveness, rører ikke databasen), `GET /ready` (databaseping, 200/503 – helsesjekk i Dokploy), `POST /client-errors` (frontend-feil), `GET /dev/last-sms?phone=` og `GET /dev/last-mail?to=` (**kun** når `App__DevEndpoints=true`, som bare settes lokalt og i CI; brukes av e2e-tester for å hente OTP/lenker).
+**Drift** – `GET /health` på rota, ikke under `/api` (liveness, rører ikke databasen), `GET /ready` på rota (databaseping, 200/503 – helsesjekk i Dokploy og røyktest på `https://api.returapp.no/ready`), `POST /client-errors` (frontend-feil), `GET /dev/last-sms?phone=` og `GET /dev/last-mail?to=` (**kun** når `App__DevEndpoints=true`, som bare settes lokalt og i CI; brukes av e2e-tester for å hente OTP/lenker).
 
 Autorisasjon: én `Require(role)`-hjelper + eierskapssjekk inne i endpointet (giver ser bare egne, admin/driver bare eget firma, super alt). Ingen policy-rammeverk.
 
@@ -466,10 +467,16 @@ Returapp publiseres med **Dokploy, uten Docker Compose**. Mønsteret følger opp
 
 | Miljø | Branch | Dokploy-apper | Domene |
 |---|---|---|---|
-| prod | `main` | `returapp-api`, `returapp-web` | `<domene>` på `web` |
-| dev | `opd` | `returapp-dev-api`, `returapp-dev-web` | `dev.<domene>` på `web` |
+| prod | `main` | `returapp-web` | `app.returapp.no` |
+| prod | `main` | `returapp-api` | `api.returapp.no` |
+| dev | `opd` | `returapp-dev-web` | `dev-app.returapp.no` |
+| dev | `opd` | `returapp-dev-api` | `dev-api.returapp.no` |
 
-API-appene får **ikke** eget offentlig domene. Alt går via `web` sin `/api`-proxy: samme vei som nettleseren, ett sertifikat per miljø, API-et er ikke direkte eksponert. Røyktest og overvåkning bruker `https://<domene>/api/ready`. (Oppskriften gir API-et `api.<domene>`; det kan legges til senere uten kodeendring hvis webhooks eller annet krever det.)
+`returapp.no` uten subdomene er reservert for en egen nettside som publiseres senere. Den er ikke en del av dette prosjektet, og ingen Returapp-app skal bruke apex-domenet.
+
+Hvert domene får eget Let's Encrypt-sertifikat i Traefik (ingen wildcard). DNS: A-record for `app`, `dev-app`, `api` og `dev-api` → Dokploy-vertens IP.
+
+Angular-appen bruker **aldri** API-domenet. Den kaller relativ `/api` på sitt eget domene, og nginx proxyer internt til API-containeren via `API_UPSTREAM` (tjenestenavn på `dokploy-network`, ikke det offentlige domenet). Dermed trengs ingen CORS. API-domenet brukes til helsesjekk og overvåkning (`https://api.returapp.no/health` og `/ready`), og er klart for integrasjoner som trenger en fast adresse (f.eks. leveringsrapporter fra SMS-leverandør). Klient-IP blir riktig på begge veier: direkte via Traefik og via nginx, som sender Traefiks `X-Forwarded-For` videre uendret, gir én hop til API-et i begge tilfeller (`ForwardLimit = 1`).
 
 **De to feltene i Dokploy** – en variabel i feil felt gjør ingenting:
 
@@ -483,9 +490,9 @@ Dev bygges også som production, fordi service worker og push kun er aktive i pr
 **API-imaget (`infra/api/Dockerfile`)**
 - `mcr.microsoft.com/dotnet/sdk:10.0.102` (pinnet til nøyaktig samme versjon som `backend/global.json`; en flytende `sdk:10.0` kan krysse feature-båndet og få `dotnet restore` til å feile) → `dotnet publish -c ${DOTNET_CONFIGURATION}` → `mcr.microsoft.com/dotnet/aspnet:10.0` (MCR, ingen Docker Hub-ratelimit).
 - `ENV ASPNETCORE_URLS=http://+:8080 ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENV}`, `EXPOSE 8080`, `USER app` (ikke-root, ingen skriverett i `/app`).
-- `curl` installeres for `HEALTHCHECK CMD curl -fsS http://localhost:8080/api/ready || exit 1`. Swarm-tjenesten i Dokploy blir da `unhealthy` hvis databasen ikke nås, og en ny versjon som ikke blir frisk kan rulles tilbake.
+- `curl` installeres for `HEALTHCHECK CMD curl -fsS http://localhost:8080/ready || exit 1`. Swarm-tjenesten i Dokploy blir da `unhealthy` hvis databasen ikke nås, og en ny versjon som ikke blir frisk kan rulles tilbake.
 - Påkrevd konfig valideres ved oppstart: mangler `Mongo__ConnectionString`, `Mongo__Database` eller `Jwt__Secret` (≥ 32 tegn), nekter API-et å starte med en tydelig feilmelding i Logs-fanen. Det er med vilje – feilen kommer med én gang, ikke ved første request.
-- `UseForwardedHeaders` med `XForwardedFor | XForwardedProto`, `ForwardLimit = 1` og tømte `KnownProxies`/`KnownIPNetworks` (containeren nås kun via nginx/Traefik på `dokploy-network`). Riktig klient-IP trengs av rate-limiteren på `/auth/*`.
+- `UseForwardedHeaders` med `XForwardedFor | XForwardedProto`, `ForwardLimit = 1` og tømte `KnownProxies`/`KnownIPNetworks` (containeren nås kun via Traefik eller nginx på `dokploy-network`). Riktig klient-IP trengs av rate-limiteren på `/auth/*`.
 
 **Web-imaget (`infra/web/Dockerfile` + `infra/web/nginx.conf`)**
 - `public.ecr.aws/docker/library/node:24-alpine` (ECR Public, ingen Docker Hub-ratelimit) → `npm ci` mot innsjekket lockfile → `ng build --configuration ${NG_CONFIGURATION}` → `public.ecr.aws/nginx/nginx:alpine`.
@@ -542,13 +549,13 @@ Rekkefølgen er valgt slik at noe kjørbart finnes etter hver fase, og slik at f
 2. `.env`-loader i `Program.cs` etter 2.4 (leser `.env.{ASPNETCORE_ENVIRONMENT}` fra repo-roten hvis den finnes, satte variabler vinner, hoppes over med `RETURAPP_SKIP_DOTENV=1`). Påkrevd konfig (`Mongo__*`, `Jwt__Secret` ≥ 32 tegn) valideres ved oppstart.
 3. `Db.cs`: `MongoClient`, `IMongoDatabase`, typed collections, `EnsureIndexes()` (alle indekser fra 2.5), `NextPickupId()` (`counters`, `$inc`, returnerer `"R-{seq}"`, startverdi 2045 så demo-data og nye ordre ikke kolliderer).
 4. Modeller i `Models/` som records med `[BsonId]`/`[BsonElement]` der navn avviker. Enum-lignende statuser som `string`-konstanter (`PickupStatus.Ny = "ny"` …) – samme verdier som prototypen.
-5. `GET /api/health` → 200 `{ ok: true }` (liveness, ingen DB). `GET /api/ready` → databaseping, 200 eller 503. Ingen CORS (same-origin, 2.8). `UseForwardedHeaders` som i 2.8, ingen `UseHttpsRedirection`. Global feilhåndtering → `ProblemDetails` (innebygd, ingen stack traces). `launchSettings.json`: `http://localhost:5080` (matcher `proxy.conf.json` i fase 3).
-5b. `infra/api/Dockerfile` etter 2.8. CI får en jobb som kjører `docker build -f infra/api/Dockerfile .`. Verifiser lokalt med `docker run --read-only --tmpfs /tmp --env-file .env.development` → `/api/ready` gir 200 mot dev-databasen.
+5. `GET /health` → 200 `{ ok: true }` (liveness, ingen DB). `GET /ready` → databaseping, 200 eller 503. Begge på rota, ikke under `/api`. Ingen CORS (same-origin, 2.8). `UseForwardedHeaders` som i 2.8, ingen `UseHttpsRedirection`. Global feilhåndtering → `ProblemDetails` (innebygd, ingen stack traces). `launchSettings.json`: `http://localhost:5080` (matcher `proxy.conf.json` i fase 3).
+5b. `infra/api/Dockerfile` etter 2.8. CI får en jobb som kjører `docker build -f infra/api/Dockerfile .`. Verifiser lokalt med `docker run --read-only --tmpfs /tmp --env-file .env.development` → `/ready` gir 200 mot dev-databasen.
 6. Seed: `Seed/postnr.csv` (Bring: Postnummerregister, tab-separert `postnr, poststed, kommunenr, kommune, kategori`) importeres hvis `postnr` er tom. Demo-seed (kategorier, firma, brukere, ordre, support) når `App__SeedDemo=true` og tom DB. Datoer i demo settes relativt til i dag (R-2041 planlagt = neste onsdag osv.) slik at skjermene ser ut som prototypen.
 7. Testharness: `ApiFixture : WebApplicationFactory<Program>` som starter Mongo i Testcontainers, setter `RETURAPP_SKIP_DOTENV=1`, `App__DevEndpoints=true`, `Mongo__ConnectionString`, `Sms__Provider=Console`, `Mail__Provider=Console`, `App__SeedDemo=true`. Hvis env `TEST_MONGO` er satt (f.eks. `…/returapp_test` på dev-serveren) brukes den i stedet for Docker; databasen droppes før hver testkjøring. Hjelpere: `LoginAs("jonas.hem@skanska.no")` → `HttpClient` med Bearer; `LastSms(phone)` / `LastMail(to)` leser fra minnebufferen i Console-senderne.
 8. Tester: `Health_returns_ok`, `Ready_returns_ok_when_db_reachable`, `Seed_creates_categories_in_design_order`, `NextPickupId_is_sequential_and_unique_under_parallel_calls` (100 parallelle kall → 100 unike).
 
-*Ferdig når:* `dotnet run` svarer på `/api/ready` mot dev-DB, `dotnet test` er grønt med Testcontainers, API-imaget bygger og starter med `--read-only`. Brukeren kan da opprette `returapp-dev-api` i Dokploy (branch `opd`) etter `DEPLOY.md`.
+*Ferdig når:* `dotnet run` svarer på `/ready` mot dev-DB, `dotnet test` er grønt med Testcontainers, API-imaget bygger og starter med `--read-only`. Brukeren kan da opprette `returapp-dev-api` i Dokploy (branch `opd`) etter `DEPLOY.md`, og `https://dev-api.returapp.no/ready` gir 200.
 
 ### Fase 2 – Autentisering, roller, gjest, invitasjon (1–2 dager)
 
@@ -577,7 +584,7 @@ Rekkefølgen er valgt slik at noe kjørbart finnes etter hver fase, og slik at f
 
 11. `infra/web/Dockerfile` + `infra/web/nginx.conf` etter 2.8. CI-jobben bygger også dette imaget. Verifiser lokalt: web-containeren mot API-containeren gir innlogging via `/api`, dyp lenke (`/p/R-2041`) laster appen (SPA-fallback), opplasting på 9 MB går gjennom proxyen.
 
-*Ferdig når:* man kan logge inn (SMS og e-post), velge rolle, se tom shell med riktig header/tabs for alle 4 roller, profil fungerer, lys/mørk er pixel-lik prototypen. Brukeren kan da opprette `returapp-dev-web` i Dokploy, slik at dev-miljøet kjører fra `opd` på `dev.<domene>`.
+*Ferdig når:* man kan logge inn (SMS og e-post), velge rolle, se tom shell med riktig header/tabs for alle 4 roller, profil fungerer, lys/mørk er pixel-lik prototypen. Brukeren kan da opprette `returapp-dev-web` i Dokploy, slik at dev-miljøet kjører fra `opd` på `https://dev-app.returapp.no`.
 
 ### Fase 4 – Kategorier, postnummer, dekning (1 dag)
 
@@ -725,7 +732,7 @@ Målet "helt lik" verifiseres systematisk, ikke etter skjønn.
 3. Kjente, aksepterte avvik (listet i `e2e/visual/ALLOWED_DIFFS.md`): statuslinje/iPhone-ramme finnes ikke; safe-area-padding i stedet for faste 58/30 px (på desktop-viewport blir det samme tall – testen kjører uten insets); ekte bilder i stedet for bilde-ikon; ekte QR i stedet for hash-mønster; relative datoer avhenger av frossen dato; beregnede statistikk-tall avviker fra prototypens hardkodede; gjest-wizard har to kontaktfelt; prototypens "Demo: hvilken som helst kode"-tekst er fjernet; "Returapp 2.0 · prototype" → "Returapp {versjon}". For skjermer med tall/bilder maskeres disse områdene (`mask: [locator]`) i stedet for å heve terskelen.
 4. Alle diffs over terskel fikses i CSS/markup til testen er grønn. Denne fasen er også der utility-klassene fra fase 3 finjusteres.
 5. **E2E-dekning** (Playwright, mot containerne bygget fra `infra/`: API med `--read-only --tmpfs /tmp`, `App__SeedDemo=true` og `App__DevEndpoints=true`, web på `http://localhost:8080` med `API_UPSTREAM` til API-containeren på et felles docker-nettverk, `mongo:8` som container): én spec per rolle som går gjennom hele designets flyt (giver: meld henting m/bilde → merkelapp → melding → avbryt; driver: børs → i dag → henting → kvittering → avvik; admin: innboks → tildel → rute → send → stats → dekning → sjåfører → avdelinger; super: godkjenn firma → tildel firma → brukere → kategori → varsel → support), pluss auth-spec (SMS, e-post, gjest, glemt passord, invitasjon) og tema/PWA-spec.
-6. CI: e2e-jobben bygger begge imagene, starter `mongo:8`, API og web på ett docker-nettverk med `docker run` (ingen compose), venter på `/api/ready`, kjører Playwright (chromium + webkit for iOS-lignende) og laster opp rapport som artifact. Siden API-et kjører `--read-only`, feiler e2e hvis noe skriver til disk.
+6. CI: e2e-jobben bygger begge imagene, starter `mongo:8`, API og web på ett docker-nettverk med `docker run` (ingen compose), venter på API-containerens `/ready`, kjører Playwright (chromium + webkit for iOS-lignende) og laster opp rapport som artifact. Siden API-et kjører `--read-only`, feiler e2e hvis noe skriver til disk.
 
 *Ferdig når:* alle visuelle tester er grønne (eller avviket står i `ALLOWED_DIFFS.md` med begrunnelse), alle e2e-flyter grønne i CI.
 
@@ -733,11 +740,11 @@ Målet "helt lik" verifiseres systematisk, ikke etter skjønn.
 
 Dockerfilene finnes fra fase 1 og 3, og dev-miljøet kjører allerede fra `opd`. Denne fasen setter opp prod og driftsrutiner. Alle steg står også i `DEPLOY.md`.
 
-1. DNS for `<domene>` peker på Dokploy-vertens IP **før** første deploy (ellers feiler Let's Encrypt).
-2. `returapp-api`: Build Type Dockerfile, branch `main`, Dockerfile Path `infra/api/Dockerfile`, Build Context `.`, port 8080, ingen domene. Environment med prod-verdier: egen database, `App__SeedDemo=false`, `App__BaseUrl=https://<domene>`, ekte `Sms__Provider`/`Mail__Provider`, egne hemmeligheter, uten `App__DevEndpoints`. Deploy, og noter tjenestenavnet fra Logs-fanen.
-3. `returapp-web`: branch `main`, `infra/web/Dockerfile`, port 80, domene `<domene>` (HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect), Environment `API_UPSTREAM=http://<tjenestenavn>:8080`. Deploy. Auto-deploy ved push til `main` slås på for begge.
-4. Helsesjekk og rollback: `HEALTHCHECK` i imagene (API: `/api/ready`). I Dokploy settes Swarm update config til rollback når en ny versjon ikke blir frisk.
-5. Røyktest: `https://<domene>/api/health` → 200, `/api/ready` → 200, logg inn (beviser `/api`-proxyen), last opp et bilde (beviser 10 MB-grensen gjennom Traefik → nginx → API og lagring i Mongo), `docker service ls` → alle `1/1`.
+1. DNS for `app.returapp.no` og `api.returapp.no` peker på Dokploy-vertens IP **før** første deploy (ellers feiler Let's Encrypt). `dev-app` og `dev-api` er satt opp fra fase 1/3.
+2. `returapp-api`: Build Type Dockerfile, branch `main`, Dockerfile Path `infra/api/Dockerfile`, Build Context `.`, port 8080, domene `api.returapp.no` (HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect). Environment med prod-verdier: egen database, `App__SeedDemo=false`, `App__BaseUrl=https://app.returapp.no`, ekte `Sms__Provider`/`Mail__Provider`, egne hemmeligheter, uten `App__DevEndpoints`. Deploy, og noter tjenestenavnet fra Logs-fanen.
+3. `returapp-web`: branch `main`, `infra/web/Dockerfile`, port 80, domene `app.returapp.no` (HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect), Environment `API_UPSTREAM=http://<tjenestenavn>:8080`. Deploy. Auto-deploy ved push til `main` slås på for begge.
+4. Helsesjekk og rollback: `HEALTHCHECK` i imagene (API: `/ready`). I Dokploy settes Swarm update config til rollback når en ny versjon ikke blir frisk.
+5. Røyktest: `https://api.returapp.no/health` → 200, `https://api.returapp.no/ready` → 200, `https://app.returapp.no/p/R-2041` laster appen (SPA-fallback), logg inn (beviser `/api`-proxyen), last opp et bilde (beviser 10 MB-grensen gjennom Traefik → nginx → API og lagring i Mongo), `docker service ls` → alle `1/1`.
 6. Logging: innebygd `ILogger` til stdout (JSON i prod via `builder.Logging.AddJsonConsole()`), leses i Dokploy sin Logs-fane. Serilog trengs ikke. Feil fra frontend: `ErrorHandler` som POSTer til `/api/client-errors` (kun melding + url + versjon).
 7. Backup: `mongodump`-cron kjører på databaseserveren, utenfor appen og Dokploy. Dokumenteres i `DEPLOY.md`.
 8. Sikkerhet-sjekkliste:
@@ -786,7 +793,6 @@ Regel: ingen fase er ferdig uten testene sine grønne. Mocking begrenses til eks
 | 11 | Gjest-ordre og personvern | Telefonnummer lagres på ordren; sletting/anonymisering etter N måneder bør avtales (GDPR). Legg inn `-- anonymize --older-than 12m`-kommando i fase 13. |
 | 12 | Hemmeligheter i Dokploy | Dokploy lagrer Environment i klartekst. Egne hemmeligheter for dev og prod, roteres ved mistanke om lekkasje. |
 | 13 | Cloudflare foran Traefik | Hvis domenet proxyes gjennom Cloudflare, ser Traefik Cloudflare sin IP. Da må Traefik stole på Cloudflare-IP-ene (eller API-et lese `CF-Connecting-IP`), ellers treffer rate-limiteren alle brukere samtidig. |
-| 14 | Domene | Må velges. `<domene>` er plassholder i 2.8 og `DEPLOY.md`. Trengs før dev-miljøet settes opp (etter fase 1/3). |
 
 ---
 
@@ -858,7 +864,7 @@ Alle `data-act`, `data-type` (sheets), `sc.*` (skjermer) og `data-to` (navigasjo
 | Angular 22 CLI installert (22.1.8) | OK – `ng new` med standalone, signals, Vitest og `@angular/pwa` støttes |
 | .NET 10 SDK (10.0.102) | OK – Minimal API, `RateLimiter`, `JwtBearer`, `ProblemDetails` er innebygd |
 | Docker (29.3.0) | OK – Testcontainers, lokal test av imagene og CI (ingen compose) |
-| Dokploy | Brukerens server. Domene og DNS må være på plass før dev-miljøet opprettes (etter fase 1/3) |
+| Dokploy | Brukerens server. DNS for `dev-api`/`dev-app.returapp.no` må være på plass før dev-miljøet opprettes (etter fase 1/3), `api`/`app.returapp.no` før fase 13 |
 | Dev-MongoDB på annen server | Venter på bruker (fase 0.6). Backend må kunne nå serveren fra utviklingsmaskinen; hvis TLS/IP-allowlist kreves, legges det i `Mongo__ConnectionString` |
 | Prototypens datoer | Prototypen er datert fredag 11. september 2026 (ukedager stemmer med kalenderen); seed og visuelle tester bruker relative datoer / frossen klokke |
 | Eksterne tjenester som krever avtale | SMS-leverandør, SMTP – begge har `Console`/`File`-varianter for dev, så ingen fase blokkeres |
@@ -876,7 +882,8 @@ Alle `data-act`, `data-type` (sheets), `sc.*` (skjermer) og `data-to` (navigasjo
 | Dato | Endring | Berørte steder |
 |---|---|---|
 | 2026-09-15 | Krav fra bruker: ingen lagring på lokal disk (appen kjører i containere). Alle bilder og filer lagres som dokumenter i MongoDB (`files`, maks 16 MB per dokument) i stedet for GridFS. Dev-e-post logges i stedet for å skrives til `.mail-out/`. Eksport/PDF genereres i minnet. `api`-containeren kjører `read_only`. | 1.7, 2 (prinsipp), 2.1, 2.2, 2.4, 2.5, fase 0, 1, 2, 5, 10, 13, 4 (teststrategi), 5 (risiko 4) |
-| 2026-09-15 | Publisering med Dokploy i stedet for Docker Compose: `infra/api/Dockerfile`, `infra/web/Dockerfile` + `nginx.conf`, Build Context `.`, frontend same-origin `/api` (ingen CORS, ingen `environment.ts`-URL), `.env.development` i repo-roten i stedet for `backend/.env`, `/api/health` + `/api/ready`, dev-endepunkter bak `App__DevEndpoints`, `UseForwardedHeaders`, e2e mot containere med `--read-only`. `main` = prod, `opd` = dev. `docker-compose.yml` slettet. | 0, 2 (prinsipp), 2.2, 2.3, 2.4, 2.6, 2.8 (ny), fase 0, 1, 2, 3, 9, 12, 13, 4, 5 (risiko 12–14), 6, 7.3, `DEPLOY.md` (ny) |
+| 2026-09-15 | Publisering med Dokploy i stedet for Docker Compose: `infra/api/Dockerfile`, `infra/web/Dockerfile` + `nginx.conf`, Build Context `.`, frontend same-origin `/api` (ingen CORS, ingen `environment.ts`-URL), `.env.development` i repo-roten i stedet for `backend/.env`, `/api/health` + `/api/ready`, dev-endepunkter bak `App__DevEndpoints`, `UseForwardedHeaders`, e2e mot containere med `--read-only`. `main` = prod, `opd` = dev. `docker-compose.yml` slettet. | 0, 2 (prinsipp), 2.2, 2.3, 2.4, 2.6, 2.8 (ny), fase 0, 1, 2, 3, 9, 12, 13, 4, 5 (risiko 12–13), 6, 7.3, `DEPLOY.md` (ny) |
+| 2026-09-15 | Domener besluttet: `app.returapp.no` / `dev-app.returapp.no` (Angular), `api.returapp.no` / `dev-api.returapp.no` (API). `returapp.no` er reservert for en egen nettside senere. API-et får eget domene, men appen bruker fortsatt same-origin `/api`. `/health` og `/ready` flyttet til rota av API-et. | 0, 2.2, 2.3, 2.6, 2.8, fase 1, 3, 12, 13, 5 (risiko 14 fjernet), 7.3, `DEPLOY.md` |
 | 2026-09-15 | Alt arbeid etter fase 0 gjøres i branch `opd`. Brukere som opprettes (seed/test) dokumenteres øverst i `README.md` med brukernavn, passord og rolle. Kun testdata i databasen. | Fase 1 og videre |
 
 ### 7.6 Konklusjon

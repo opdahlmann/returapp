@@ -4,7 +4,7 @@ Enkel retur og gjenbruk fra byggeplassen. Angular 22 PWA + .NET 10 Minimal API +
 
 - Design (fasit): `docs/design/Returapp-standalone.html`
 - Plan: `IMPLEMENTERINGSPLAN.md`
-- Publisering (Dokploy): `DEPLOY.md`
+- Publisering (Dokploy): `DEPLOY.md` – app på https://app.returapp.no (dev: https://dev-app.returapp.no), API på https://api.returapp.no (dev: https://dev-api.returapp.no)
 
 ## Kom i gang
 
