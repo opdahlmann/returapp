@@ -67,7 +67,7 @@ App__Co2Factor=0.9
 
 **Aldri** sett `App__DevEndpoints` i Dokploy. Den åpner `/api/dev/last-sms`, som viser innloggingskoder.
 
-`ASPNETCORE_URLS` og `ASPNETCORE_ENVIRONMENT` settes av Dockerfilen og skal ikke inn her.
+`ASPNETCORE_HTTP_PORTS` og `ASPNETCORE_ENVIRONMENT` settes av Dockerfilen og skal ikke inn her.
 
 ### Web (`returapp-dev-web` / `returapp-web`)
 

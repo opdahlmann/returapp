@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Returapp.Api/Returapp.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Returapp.Api.Tests/Returapp.Api.Tests.csproj" />
+  </Folder>
+</Solution>

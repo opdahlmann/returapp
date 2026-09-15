@@ -1,0 +1,10 @@
+.git
+.env
+.env.*
+**/bin
+**/obj
+**/node_modules
+**/.angular
+**/dist
+docs
+**/.DS_Store

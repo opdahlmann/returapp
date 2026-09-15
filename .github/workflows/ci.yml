@@ -2,21 +2,33 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, opd]
   pull_request:
 
-# hashFiles-vaktene holder CI grønt før prosjektene finnes (fase 1 og 3); fjernes da.
 jobs:
   backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - if: hashFiles('backend/Returapp.sln') != ''
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
-      - if: hashFiles('backend/Returapp.sln') != ''
-        run: dotnet test backend/Returapp.sln
+          global-json-file: backend/global.json
+      - run: dotnet build backend
+      # Testene bruker den ene dev-databasen (ingen testdatabaser). Krever repo-secrets MONGO_CONNECTION_STRING og MONGO_DATABASE.
+      - name: dotnet test
+        env:
+          Mongo__ConnectionString: ${{ secrets.MONGO_CONNECTION_STRING }}
+          Mongo__Database: ${{ secrets.MONGO_DATABASE }}
+        run: |
+          if [ -z "$Mongo__ConnectionString" ]; then echo "::warning::MONGO_CONNECTION_STRING mangler – backend-tester hoppes over"; exit 0; fi
+          export Jwt__Secret=$(openssl rand -hex 32)
+          dotnet test backend --no-build
+
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f infra/api/Dockerfile -t returapp-api .
 
   frontend:
     runs-on: ubuntu-latest
