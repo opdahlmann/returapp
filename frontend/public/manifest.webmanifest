@@ -1,0 +1,16 @@
+{
+  "name": "Returapp",
+  "short_name": "Returapp",
+  "description": "Enkel retur og gjenbruk fra byggeplassen",
+  "lang": "nb",
+  "theme_color": "#1B4D2B",
+  "background_color": "#F3F4EF",
+  "display": "standalone",
+  "scope": "./",
+  "start_url": "./",
+  "icons": [
+    { "src": "icons/icon-192x192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512x512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

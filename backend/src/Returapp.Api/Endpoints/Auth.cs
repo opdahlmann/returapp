@@ -195,6 +195,9 @@ public static class AuthEndpoints
                 sp.GetService<ConsoleSmsSender>()?.Last.GetValueOrDefault(Phone.Normalize(phone) ?? phone) is { } text ? Results.Ok(new { text }) : Results.NotFound());
             app.MapGet("/api/dev/last-mail", (string to, IServiceProvider sp) =>
                 sp.GetService<ConsoleMailSender>()?.Last.GetValueOrDefault(to.ToLowerInvariant()) is { } m ? Results.Ok(new { m.Subject, m.Body }) : Results.NotFound());
+            // E2E-tester rydder opp SMS-brukere de selv har opprettet (kun brukere uten e-post, altså ikke demo-brukere med passord).
+            app.MapDelete("/api/dev/test-user", async (string phone, Db db) =>
+                Results.Ok(new { deleted = (await db.Users.DeleteOneAsync(u => u.Phone == Phone.Normalize(phone) && u.Email == null && u.Name == "")).DeletedCount }));
         }
     }
 

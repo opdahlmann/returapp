@@ -49,6 +49,14 @@ npm install
 npm start
 ```
 
+Tester i nettleser (Playwright, starter API og `ng serve` selv hvis de ikke kjører):
+
+```sh
+cd frontend
+npx playwright install chromium   # første gang
+npm run e2e
+```
+
 API-imaget lokalt (samme som Dokploy):
 
 ```sh

@@ -80,6 +80,8 @@ app.MapGet("/ready", async () =>
     catch { return Results.Json(new { ok = false, db = false }, statusCode: 503); }
 });
 app.MapAuth();
+app.MapReference();
+app.MapSupport();
 
 app.Run();
 

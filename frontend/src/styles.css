@@ -1,0 +1,34 @@
+/* Figtree self-hostet (variabel font, samme filer som prototypen) */
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Figtree';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('/fonts/figtree-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Reset og tokens kopiert eksakt fra prototypen */
+body{margin:0;background:#E4E8E0}
+*{box-sizing:border-box}
+button{font:inherit;cursor:pointer;color:inherit}
+input,textarea,select{font:inherit;color:inherit}
+input::placeholder,textarea::placeholder{color:var(--mu);opacity:1}
+a{color:var(--pri)}a:hover{color:var(--tint-tx)}
+[data-theme]{--bg:#F3F4EF;--sf:#FFFFFF;--sf2:#EBEEE6;--tx:#182119;--mu:#66716A;--bd:#E1E4DC;--pri:#2E7A45;--pri-tx:#FFFFFF;--tint:#DDEED9;--tint-tx:#1F5A31;--warn:#8F5410;--warn-bg:#F7E7C8;--dan:#B23B33;--dan-bg:#F8DDDA;--info:#2B5FA6;--info-bg:#DCE7F6;--sh:0 1px 2px rgba(20,30,20,.05),0 8px 24px rgba(20,30,20,.05)}
+[data-theme="dark"]{--bg:#0F1512;--sf:#171E19;--sf2:#1F2822;--tx:#EDF1EA;--mu:#93A096;--bd:#28322B;--pri:#5DBA72;--pri-tx:#0B1A0F;--tint:#1D3626;--tint-tx:#9BD9A9;--warn:#E5B36A;--warn-bg:#3A2D14;--dan:#F08A80;--dan-bg:#42201D;--info:#8DB4EE;--info-bg:#1B2C48;--sh:none}
+@keyframes ra-up{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+@keyframes ra-fade{from{opacity:0}to{opacity:1}}
+
+/* App-flaten: tilsvarer prototypens 402×874-skjerm, fyller viewporten (maks 480px sentrert på desktop) */
+.app{position:relative;margin:0 auto;max-width:480px;height:100vh;height:100dvh;display:flex;flex-direction:column;background:var(--bg);color:var(--tx);font-family:'Figtree',system-ui,sans-serif;font-size:15px;line-height:1.4;overflow:hidden;-webkit-tap-highlight-color:transparent}
+/* router-outlet og wrapper-komponenter skal ikke påvirke flex/gap i designet */
+router-outlet{display:none}
