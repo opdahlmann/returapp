@@ -37,7 +37,7 @@ import { ShellStore } from './shell.store';
         <button routerLink="/profile" aria-label="Profil" style="width:42px;height:42px;border-radius:13px;border:0;background:var(--pri);color:var(--pri-tx);font-weight:800;font-size:14px;flex-shrink:0">{{ ini() }}</button>
       }
     </div>
-    <div style="flex:1;overflow:auto;padding:4px 20px 120px;scrollbar-width:none;display:flex;flex-direction:column;gap:14px">
+    <div class="ra-scroll" style="flex:1;overflow:auto;padding:4px 20px 120px;scrollbar-width:none;display:flex;flex-direction:column;gap:14px">
       @for (n of notices(); track n.id) {
         <div role="alert" style="border-radius:16px;padding:14px;background:var(--warn-bg);color:var(--warn);display:flex;gap:10px;align-items:flex-start;flex-shrink:0"><ra-icon name="megaphone" /><div style="flex:1;font-size:14px;line-height:1.45;font-weight:600">{{ n.text }}</div><button (click)="dismiss(n.id)" aria-label="Lukk varsel" style="border:0;background:none;color:var(--warn);padding:0"><ra-icon name="x" [size]="18" /></button></div>
       }

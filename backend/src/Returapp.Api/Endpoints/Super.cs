@@ -76,7 +76,8 @@ public static class SuperEndpoints
                 var rx = new BsonRegularExpression(Regex.Escape(q.Trim()), "i");
                 filter = Builders<User>.Filter.Or(Builders<User>.Filter.Regex(u => u.Name, rx), Builders<User>.Filter.Regex(u => u.Email, rx), Builders<User>.Filter.Regex(u => u.Org, rx), Builders<User>.Filter.Regex(u => u.Phone, rx));
             }
-            var users = await db.Users.Find(filter).SortBy(u => u.Name).Limit(50).ToListAsync();
+            // Registreringsrekkefølge som i designet. ponytail: maks 50 uten søk – legg til paging når brukerlisten vokser.
+            var users = await db.Users.Find(filter).SortBy(u => u.CreatedAt).ThenBy(u => u.Id).Limit(50).ToListAsync();
             var companyIds = users.Select(u => u.CompanyId).OfType<string>().Distinct().ToList();
             var names = (await db.Companies.Find(c => companyIds.Contains(c.Id)).ToListAsync()).ToDictionary(c => c.Id, c => c.Name);
             return Results.Ok(users.Select(u => new { u.Id, u.Name, u.Email, u.Phone, u.Org, u.Roles, u.CompanyId, companyName = u.CompanyId == null ? null : names.GetValueOrDefault(u.CompanyId), u.Active }));

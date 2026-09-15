@@ -22,7 +22,7 @@ interface InviteInfo {
   host: { style: 'display:contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:70px 24px 44px;overflow:auto">
+    <div class="ra-scroll" style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:70px 24px 44px;overflow:auto">
       <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">Velkommen til Returapp</div>
       @if (info(); as i) {
         @if (i.ok) {

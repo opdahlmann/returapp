@@ -15,7 +15,7 @@ public static class AuthEndpoints
     public record EmailBody(string Email);
     public record ResetBody(string Token, string Password);
     public record InviteAcceptBody(string Token, string? Name, string? Password);
-    public record DevCleanup(List<string>? PickupIds, List<string>? Phones, List<string>? CompanyIds);
+    public record DevCleanup(List<string>? PickupIds, List<string>? Phones, List<string>? CompanyIds, List<string>? Emails);
     public record MePatch(string? Name, string? Org, string? Email, string? Phone, string? PhoneCode, string? Postnr, string? Theme, Notif? Notif);
 
     static readonly PasswordHasher<User> Hasher = new();
@@ -199,6 +199,11 @@ public static class AuthEndpoints
             app.MapGet("/api/dev/last-mail", (string to, IServiceProvider sp) =>
                 sp.GetService<ConsoleMailSender>()?.Last.GetValueOrDefault(to.ToLowerInvariant()) is { } m ? Results.Ok(new { m.Subject, m.Body }) : Results.NotFound());
             // E2E-tester rydder egne data: ordre merket "[e2e]" (med bilder og varsler), og SMS-brukere/varsel-abonnement for testnummer.
+            app.MapPost("/api/dev/reset-demo", async (Db db, ILogger<DevCleanup> log) =>
+            {
+                await Seed.Seeder.ResetDemo(db, log);
+                return Results.Ok();
+            });
             app.MapPost("/api/dev/cleanup", async (DevCleanup b, Db db) =>
             {
                 var ids = await db.Pickups.Find(p => (b.PickupIds ?? new()).Contains(p.Id) && p.Desc.StartsWith("[e2e]")).Project(p => p.Id).ToListAsync();
@@ -208,6 +213,13 @@ public static class AuthEndpoints
                 var phones = (b.Phones ?? new()).Select(Phone.Normalize).OfType<string>().ToList();
                 var users = await db.Users.DeleteManyAsync(u => phones.Contains(u.Phone!) && u.Email == null && u.Name == "");
                 await db.CoverageAlerts.DeleteManyAsync(a => phones.Contains(a.Phone!));
+                // Inviterte e2e-brukere: bare adresser på @test.returapp.no.
+                var emails = (b.Emails ?? new()).Select(e => e.ToLowerInvariant()).Where(e => e.EndsWith("@test.returapp.no")).ToList();
+                var emailUsers = await db.Users.Find(u => emails.Contains(u.Email!)).Project(u => u.Id).ToListAsync();
+                await db.PasswordResets.DeleteManyAsync(r => emailUsers.Contains(r.UserId));
+                await db.Notifications.DeleteManyAsync(n => emailUsers.Contains(n.UserId));
+                await db.Invites.DeleteManyAsync(i => emails.Contains(i.Email!));
+                await db.Users.DeleteManyAsync(u => emailUsers.Contains(u.Id));
                 var companies = await db.Companies.Find(c => (b.CompanyIds ?? new()).Contains(c.Id) && c.Name.StartsWith("E2E ")).Project(c => c.Id).ToListAsync();
                 await db.Companies.DeleteManyAsync(c => companies.Contains(c.Id));
                 await db.Invites.DeleteManyAsync(i => companies.Contains(i.CompanyId!));

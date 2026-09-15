@@ -18,7 +18,7 @@ export function consumeReturnUrl(): string | null {
   host: { style: 'display:contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:78px 24px 44px;overflow:auto">
+    <div class="ra-scroll" style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:78px 24px 44px;overflow:auto">
       <div style="display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:22px">
         <svg width="76" height="76" viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="#2E7A45"></circle><path d="M19 43C19 29 28 21 45 20c-1 16-9 24-24 24" fill="#B7E39B"></path><path d="M19 43c5-7 12-13 22-18" stroke="#2E7A45" stroke-width="2.4" stroke-linecap="round"></path><path d="M42 36a12 12 0 0 1-15 8" stroke="#fff" stroke-width="3" stroke-linecap="round"></path><path d="M26 39l1 6 6-1" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg>
         <div style="text-align:center"><h1 style="margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1">Retur<span style="color:#B7E39B">app</span></h1><div style="font-size:14px;color:rgba(255,255,255,.7);margin-top:8px">Enkel retur og gjenbruk fra byggeplassen</div></div>

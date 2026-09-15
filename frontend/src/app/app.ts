@@ -10,13 +10,13 @@ import { ShellStore } from './shell/shell.store';
   selector: 'app-root',
   imports: [RouterOutlet, NgComponentOutlet],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: { '(document:keydown.escape)': 'shell.closeSheet()', '(document:keydown.tab)': 'trapFocus($event)' },
+  host: { '(document:keydown.escape)': 'shell.closeSheet()', '(document:keydown.tab)': 'trapFocus($event)', '(document:keydown.shift.tab)': 'trapFocus($event)' },
   template: `
     <div class="app">
       <router-outlet />
       @if (shell.sheet(); as s) {
         <div (click)="shell.closeSheet()" style="position:absolute;inset:0;background:rgba(10,20,12,.45);z-index:30;animation:ra-fade .2s"></div>
-        <div #dialog role="dialog" aria-modal="true" tabindex="-1" style="outline:none;position:absolute;left:0;right:0;bottom:0;z-index:31;background:var(--sf);border-radius:26px 26px 0 0;padding:10px 20px max(44px, env(safe-area-inset-bottom));max-height:82%;overflow:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:14px;animation:ra-up .28s cubic-bezier(.2,.8,.2,1)">
+        <div class="ra-scroll" #dialog role="dialog" aria-modal="true" tabindex="-1" style="outline:none;position:absolute;left:0;right:0;bottom:0;z-index:31;background:var(--sf);border-radius:26px 26px 0 0;padding:10px 20px max(44px, env(safe-area-inset-bottom));max-height:82%;overflow:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:14px;animation:ra-up .28s cubic-bezier(.2,.8,.2,1)">
           <div style="width:40px;height:5px;border-radius:3px;background:var(--bd);margin:0 auto 4px"></div>
           <ng-container *ngComponentOutlet="s.component; inputs: s.inputs ?? {}" />
         </div>
@@ -62,17 +62,14 @@ export class App {
     location.reload();
   }
 
-  /** Tab/Shift+Tab sykler innenfor åpent ark. */
+  /** Tab/Shift+Tab sykler innenfor åpent ark. Styres helt her – Safari hopper ellers over knapper. */
   protected trapFocus(e: Event) {
     const el = this.dialog()?.nativeElement;
-    if (!el) return;
-    const items = focusables(el);
+    const items = el ? focusables(el) : [];
     if (!items.length) return;
-    const first = items[0], last = items[items.length - 1], shift = (e as KeyboardEvent).shiftKey;
-    if (!el.contains(document.activeElement) || (shift && (document.activeElement === first || document.activeElement === el)) || (!shift && document.activeElement === last)) {
-      e.preventDefault();
-      (shift ? last : first).focus();
-    }
+    e.preventDefault();
+    const i = items.indexOf(document.activeElement as HTMLElement), step = (e as KeyboardEvent).shiftKey ? -1 : 1;
+    items[i === -1 ? (step > 0 ? 0 : items.length - 1) : (i + step + items.length) % items.length].focus();
   }
 }
 

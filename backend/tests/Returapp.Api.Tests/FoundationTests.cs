@@ -42,6 +42,22 @@ public class FoundationTests(ApiFixture api)
     }
 
     [Fact]
+    public async Task Reset_demo_restores_design_state_with_dates_from_today_and_keeps_photos()
+    {
+        var photos = (await api.Db.Pickups.Find(p => p.Id == "R-2041").FirstAsync()).Photos;
+        await api.Db.Pickups.UpdateOneAsync(p => p.Id == "R-2041", Builders<Models.Pickup>.Update.Set(p => p.Status, "avbrutt").Set(p => p.Day, "2020-01-01"));
+
+        var res = await api.CreateClient().PostAsync("/api/dev/reset-demo", null);
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var r2041 = await api.Db.Pickups.Find(p => p.Id == "R-2041").FirstAsync();
+        Assert.Equal("planlagt", r2041.Status);
+        Assert.Equal(Fmt.Today().ToString("yyyy-MM-dd"), r2041.Day);
+        Assert.Equal(photos.Select(p => p.FileId), r2041.Photos.Select(p => p.FileId));
+        Assert.Equal(3, r2041.Messages.Count);
+    }
+
+    [Fact]
     public async Task NextSeq_is_unique_under_parallel_calls()
     {
         // Egen teller per kjøring, så pickup-løpenummeret ikke brukes opp av testen.

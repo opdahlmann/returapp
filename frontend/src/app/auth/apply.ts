@@ -13,7 +13,7 @@ const INPUT = 'height:54px;border-radius:14px;background:#fff;color:#182119;bord
   host: { style: 'display:contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:70px 24px 44px;overflow:auto">
+    <div class="ra-scroll" style="flex:1;display:flex;flex-direction:column;background:#1B4D2B;color:#fff;padding:70px 24px 44px;overflow:auto">
       <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">Søk som hentefirma</div>
       @if (!sent()) {
         <div style="color:rgba(255,255,255,.72);margin-top:8px">Hent materialer til gjenbruk fra byggeplasser i ditt område. Vi godkjenner firmaet og sender deg innlogging.</div>

@@ -57,6 +57,10 @@ npx playwright install chromium   # første gang
 npm run e2e
 ```
 
+`e2e/visual` sammenligner hver skjerm (lys og mørk) med prototypens referansebilder i `docs/design/screens` og setter demo-dataene tilbake til utgangspunktet først. Kjente avvik står i `frontend/e2e/visual/ALLOWED_DIFFS.md`. Nye referansebilder (bare når designet endres): `CAPTURE=1 npx playwright test --project reference`.
+
+Mot containerne, slik CI gjør (API på 8088, web på 8080, se `.github/workflows/ci.yml`): `E2E_BASE_URL=http://localhost:8080 E2E_API_URL=http://localhost:8088 E2E_WEBKIT=1 npx playwright test`.
+
 API-imaget lokalt (samme som Dokploy):
 
 ```sh

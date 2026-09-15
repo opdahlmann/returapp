@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { cleanup, devCode, loginEmail, testPhone } from './helpers';
+import { cleanup, devCode, loginAs, loginEmail, mailLink, testPhone } from './helpers';
 
 test('SMS-innlogging: kode → rett inn som giver (én rolle)', async ({ page, request }) => {
   const phone = testPhone();
@@ -59,4 +59,48 @@ test('Tema-bytte lagres på brukeren og overlever reload', async ({ page }) => {
   // Sett tilbake, så demo-brukeren ikke endres av testen.
   await page.getByRole('switch', { name: /modus/ }).click();
   await expect(html).toHaveAttribute('data-theme', before!);
+});
+
+test('Invitasjon på e-post → aktiver konto → glemt passord → nytt passord → logg inn', async ({ page, request }) => {
+  const email = `e2e-${Date.now()}@test.returapp.no`;
+  try {
+    await loginAs(page, 'demo@returapp.no', /^Superbruker/);
+    await page.goto('/s/users');
+    await page.getByRole('button', { name: 'Inviter bruker' }).click();
+    const sheet = page.getByRole('dialog');
+    await sheet.getByLabel('Navn').fill('E2E Invitert');
+    await sheet.getByLabel('E-post eller mobilnummer').fill(email);
+    await expect(sheet.getByRole('switch', { name: 'Byggeplass / giver' })).toHaveAttribute('aria-checked', 'true');
+    await sheet.getByRole('button', { name: 'Send invitasjon' }).click();
+    await expect(page.getByRole('status')).toHaveText('Invitasjon sendt på e-post');
+    const invite = await mailLink(request, email, 'invite');
+
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Logg ut' }).click();
+    await page.goto(invite);
+    await expect(page.getByLabel('Navn')).toHaveValue('E2E Invitert');
+    await page.getByLabel('Velg passord').fill('e2epassord1');
+    await page.getByRole('button', { name: 'Aktiver konto' }).click();
+    await expect(page).toHaveURL(/\/g\/home$/);
+
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Logg ut' }).click();
+    await page.getByRole('button', { name: 'E-post' }).click();
+    await page.getByRole('button', { name: 'Glemt passord?' }).click();
+    await page.getByRole('dialog').getByLabel('E-post').fill(email);
+    await page.getByRole('button', { name: 'Send lenke' }).click();
+    await expect(page.getByRole('status')).toHaveText('Lenke for nytt passord er sendt');
+    await page.goto(await mailLink(request, email, 'reset'));
+    await page.getByLabel('Nytt passord').fill('e2epassord2');
+    await page.getByRole('button', { name: 'Lagre passord' }).click();
+    await expect(page.getByRole('status')).toHaveText('Passordet er endret – logg inn');
+
+    await loginEmail(page, email, 'e2epassord1');
+    await expect(page.getByRole('status')).toBeVisible();
+    await expect(page).toHaveURL(/\/login/);
+    await loginEmail(page, email, 'e2epassord2');
+    await expect(page).toHaveURL(/\/g\/home$/);
+  } finally {
+    await cleanup(request, { emails: [email] });
+  }
 });

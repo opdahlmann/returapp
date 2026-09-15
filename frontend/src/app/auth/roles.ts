@@ -24,7 +24,7 @@ export function roleWho(user: Me | null, role: Role): string {
   host: { style: 'display:contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div style="flex:1;display:flex;flex-direction:column;background:var(--bg);padding:70px 20px 40px;overflow:auto">
+    <div class="ra-scroll" style="flex:1;display:flex;flex-direction:column;background:var(--bg);padding:70px 20px 40px;overflow:auto">
       <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">Hvem er du i dag?</div>
       <div style="color:var(--mu);margin-top:6px">Kontoen din har flere roller. Du kan bytte når som helst fra profilen.</div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">

@@ -294,8 +294,8 @@ export function roleText(u: { roles: Record<Role, boolean> }) {
   template: `
     <div style="font-size:20px;font-weight:800;letter-spacing:-.02em">{{ u().name || phone(u().phone) }}</div><div style="font-size:13px;color:var(--mu);margin-top:-10px">{{ [u().companyName ?? u().org, u().email, phone(u().phone)].filter(present).join(' · ') }}</div>
     <div style="border-radius:16px;border:1px solid var(--bd);padding:0 14px">
-      @for (r of roleOrder; track r; let last = $last) {
-        <button (click)="toggle(r)" role="switch" [attr.aria-checked]="u().roles[r]" [style.border-bottom]="last ? '0' : '1px solid var(--bd)'" style="display:flex;align-items:center;gap:12px;width:100%;padding:13px 0;border:0;background:none;text-align:left"><div style="flex:1;font-weight:700">{{ roles[r].l }}</div><ra-toggle [on]="u().roles[r]" /></button>
+      @for (r of roleOrder; track r) {
+        <button (click)="toggle(r)" role="switch" [attr.aria-checked]="u().roles[r]" style="display:flex;align-items:center;gap:12px;width:100%;padding:13px 0;border:0;background:none;text-align:left;border-bottom:1px solid var(--bd)"><div style="flex:1;font-weight:700">{{ roles[r].l }}</div><ra-toggle [on]="u().roles[r]" /></button>
       }
     </div>
     @if ((u().roles.driver || u().roles.admin) && !u().companyId && companies.value()) {

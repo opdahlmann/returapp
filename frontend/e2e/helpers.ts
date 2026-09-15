@@ -8,6 +8,17 @@ export async function devCode(request: APIRequestContext, phone: string): Promis
   return /\d{6}/.exec(text)![0];
 }
 
+/** Lenke-stien (f.eks. /invite/abc) fra siste e-post til adressen (Console-mail i dev). */
+export async function mailLink(request: APIRequestContext, to: string, path: 'invite' | 'reset'): Promise<string> {
+  let body = '';
+  await expect.poll(async () => {
+    const res = await request.get(`${API}/api/dev/last-mail?to=${encodeURIComponent(to)}`);
+    body = res.ok() ? (await res.json()).body : '';
+    return new RegExp(`/${path}/`).test(body);
+  }).toBe(true);
+  return new RegExp(`/${path}/[\\w-]+`).exec(body)![0];
+}
+
 export async function loginEmail(page: Page, email: string, password = 'demo1234') {
   await page.goto('/login');
   await page.getByRole('button', { name: 'E-post' }).click();
@@ -38,7 +49,7 @@ export async function loginAs(page: Page, email: string, role?: RegExp) {
 }
 
 /** Rydder testdata via dev-endepunktet (kun ordre med beskrivelse "[e2e] …" og SMS-testbrukere). */
-export async function cleanup(request: APIRequestContext, data: { pickupIds?: string[]; phones?: string[]; companyIds?: string[] }) {
+export async function cleanup(request: APIRequestContext, data: { pickupIds?: string[]; phones?: string[]; companyIds?: string[]; emails?: string[] }) {
   expect((await request.post(`${API}/api/dev/cleanup`, { data })).status()).toBe(200);
 }
 

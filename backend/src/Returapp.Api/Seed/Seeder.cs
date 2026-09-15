@@ -58,6 +58,9 @@ public static class Seeder
             await db.Pickups.UpdateOneAsync(x => x.Id == p.Id, Builders<Pickup>.Update.Set(x => x.Photos, photos));
         }
         if (pickups.Count > 0) log.LogInformation("Demo-bilder lagt til på {Count} ordre", pickups.Count);
+        // Hentede demo-ordre: bildene regnes også som dokumentasjon ved henting (kvitteringen i designet viser «3 bilder ved henting»).
+        foreach (var p in await db.Pickups.Find(p => ids.Contains(p.Id) && p.Status == PickupStatus.Hentet && p.PickedPhotos.Count == 0 && p.Photos.Count > 0).ToListAsync())
+            await db.Pickups.UpdateOneAsync(x => x.Id == p.Id, Builders<Pickup>.Update.Set(x => x.PickedPhotos, p.Photos));
     }
 
     static async Task ImportPostnr(Db db, ILogger log)
@@ -78,7 +81,19 @@ public static class Seeder
     // "NORD-AURDAL" → "Nord-Aurdal", "EVJE OG HORNNES" → "Evje og Hornnes"
     public static string Title(string s) => Nb.TextInfo.ToTitleCase(s.ToLower(Nb)).Replace(" Og ", " og ").Replace(" I ", " i ");
 
-    static async Task SeedDemo(Db db, DateTime nowUtc)
+    static readonly string[] DemoUserIds = ["u1", "u2", "u3", "u4", "u5", "u6", "u7"];
+
+    /// Setter demo-dataene tilbake til designets utgangspunkt med datoer relativt til i dag (dev/e2e: visuelle tester).
+    /// Beholder bilder, innloggede økter og push-abonnement; fjerner demo-brukernes varsler og lagrede ruter.
+    public static async Task ResetDemo(Db db, ILogger log)
+    {
+        await SeedDemo(db, DateTime.UtcNow, reset: true);
+        await db.Notifications.DeleteManyAsync(n => DemoUserIds.Contains(n.UserId));
+        await db.Routes.DeleteManyAsync(r => DemoUserIds.Contains(r.DriverId));
+        await SeedDemoPhotos(db, log);
+    }
+
+    static async Task SeedDemo(Db db, DateTime nowUtc, bool reset = false)
     {
         // Prototypen er datert fredag 11. september 2026. Alle datoer legges relativt til i dag (norsk tid).
         var today = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, Oslo).Date;
@@ -86,13 +101,13 @@ public static class Seeder
         string Day(int day) => today.AddDays(day).ToString("yyyy-MM-dd");
         var now = nowUtc;
 
-        await db.Categories.InsertManyAsync(DesignCategories.Select((c, i) => new Category
+        await Save(db.Categories, reset, c => c.Id, DesignCategories.Select((c, i) => new Category
         {
             Id = c.Id, Name = c.Name, Icon = c.Id, Order = i,
             KgPerUnit = new() { ["stk"] = 18, ["m2"] = 18, ["lm"] = 18, ["paller"] = 18, ["kg"] = 1 },
-        }));
+        }).ToList());
 
-        await db.Companies.InsertManyAsync(
+        await Save(db.Companies, reset, c => c.Id,
         [
             new Company
             {
@@ -129,7 +144,7 @@ public static class Seeder
             if (email != null) u.PasswordHash = hasher.HashPassword(u, DemoPassword);
             return u;
         }
-        await db.Users.InsertManyAsync(
+        List<User> users =
         [
             U("u1", "Jonas Hem", "jonas.hem@skanska.no", "912 34 567", "Skanska – Tangen brygge", new() { Giver = true }, postnr: "4608"),
             U("u2", "Silje Nordbø", "silje@ombruksfabrikken.no", "950 12 345", "Ombruksfabrikken AS", new() { Admin = true }, "omb"),
@@ -138,7 +153,13 @@ public static class Seeder
             U("u5", "Mona Lie", "mona@gjenbrukslageret.no", "480 11 223", "Gjenbrukslageret Oslo", new() { Driver = true, Admin = true }, "gjo", "Lastebil m/kran", ["Oslo"]),
             U("u6", "Demo Superbruker", "demo@returapp.no", null, "Returapp", new() { Giver = true, Super = true }, postnr: "4608"),
             U("u7", "Hans Dahl", null, "900 88 776", "Privat", new() { Giver = true }, postnr: "4626"),
-        ]);
+        ];
+        if (reset)
+        {
+            var existing = (await db.Users.Find(u => DemoUserIds.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id);
+            foreach (var u in users.Where(u => existing.ContainsKey(u.Id))) (u.RefreshTokens, u.PushSubscriptions) = (existing[u.Id].RefreshTokens, existing[u.Id].PushSubscriptions);
+        }
+        await Save(db.Users, reset, u => u.Id, users);
 
         var postnrs = await db.Postnr.Find(p => new[] { "4608", "4611", "4631", "4626", "4700", "4790", "0555", "4878" }.Contains(p.Id)).ToListAsync();
         var kommune = postnrs.ToDictionary(p => p.Id, p => p.Kommune);
@@ -158,8 +179,9 @@ public static class Seeder
             };
         }
 
+        // R-2041 og R-2037 er Karis stopp på «I dag»-skjermen og ruten i designet (datoteksten der sier 16. sep) – seedes på i dag så skjermene blir like.
         var r2041 = P("R-2041", "vinduer", "24 vinduer, 3-lags glass", "Demontert fra 2. etasje, hele karmer. Stablet på paller ved port B.", "Skanska – Tangen brygge", "Jonas Hem", "912 34 567",
-            "Tangen 8", "4608", 24, "stk", "God", "120 × 140 cm", Day(5), "09–12", true, PickupStatus.Planlagt, "omb", "u3", At(-1, 8, 14), 720, "u1");
+            "Tangen 8", "4608", 24, "stk", "God", "120 × 140 cm", Day(0), "09–12", true, PickupStatus.Planlagt, "omb", "u3", At(-1, 8, 14), 720, "u1");
         r2041.Messages =
         [
             new("u3", "Hei! Er vinduene tilgjengelige fra porten, eller må vi inn på plassen?", At(-1, 15, 2)),
@@ -180,7 +202,7 @@ public static class Seeder
         {
             r2041,
             P("R-2037", "mobler", "30 kontorstoler", "Kontorstoler fra flytting, sorte, fungerende hev/senk.", "Cowi – Rådhusgata", "Mette Skar", "405 11 222",
-                "Rådhusgata 3", "4611", 30, "stk", "God", "", Day(5), "12–15", false, PickupStatus.Planlagt, "omb", "u3", At(-3, 13, 40), 420),
+                "Rådhusgata 3", "4611", 30, "stk", "God", "", Day(0), "12–15", false, PickupStatus.Planlagt, "omb", "u3", At(-3, 13, 40), 420),
             P("R-2042", "paller", "40 europaller", "Hele EUR-paller, står under tak ved varemottak.", "Byggmakker Vennesla", "Trond Aas", "380 15 200",
                 "Sentrumsveien 3", "4700", 40, "stk", "God", "80 × 120 cm", null, "07–15", true, PickupStatus.Ny, "omb", null, At(0, 7, 52), 1000),
             P("R-2039", "kjokken", "Komplett kjøkken, 12 skrog", "Hvitt kjøkken fra 2018, benkeplate i laminat. Demonteres fredag.", "Veidekke – Lund skole", "Amir Haddad", "977 65 432",
@@ -227,13 +249,23 @@ public static class Seeder
             }
             pickups.Add(p);
         }
-        await db.Pickups.InsertManyAsync(pickups);
+        if (reset)
+        {
+            var ids = pickups.Select(p => p.Id).ToList();
+            var photos = (await db.Pickups.Find(p => ids.Contains(p.Id)).Project(p => new { p.Id, p.Photos }).ToListAsync()).ToDictionary(p => p.Id, p => p.Photos);
+            foreach (var p in pickups) p.Photos = photos.GetValueOrDefault(p.Id, []);
+        }
+        await Save(db.Pickups, reset, p => p.Id, pickups);
 
-        await db.Support.InsertManyAsync(
+        await Save(db.Support, reset, s => s.Id,
         [
             new SupportCase { Id = "s1", FromUserId = "u7", FromName = "Hans Dahl", Org = "Privat", Text = "Får ikke lagt til bilder fra iPhone – knappen gjør ingenting.", Open = true, CreatedAt = At(0, 10, 12), UpdatedAt = now },
             new SupportCase { Id = "s2", FromName = "Sirkula Sør", Org = "Hentefirma", Text = "Når kan vi forvente svar på godkjenningen?", Open = true, CreatedAt = At(-1, 14, 0), UpdatedAt = now },
             new SupportCase { Id = "s3", FromName = "Mette Skar", Org = "Cowi", Text = "Takk for rask hjelp med endring av tidsvindu!", Open = false, CreatedAt = At(-3, 11, 0), UpdatedAt = now },
         ]);
     }
+
+    static Task Save<T>(IMongoCollection<T> col, bool reset, Func<T, string> id, List<T> docs) => reset
+        ? col.BulkWriteAsync(docs.Select(d => new ReplaceOneModel<T>(Builders<T>.Filter.Eq("_id", id(d)), d) { IsUpsert = true }))
+        : col.InsertManyAsync(docs);
 }

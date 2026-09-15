@@ -13,7 +13,13 @@ export default defineConfig({
     timezoneId: 'Europe/Oslo',
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 402, height: 874 } } }],
+  projects: [
+    { name: 'chromium', testIgnore: 'reference/**', use: { ...devices['Desktop Chrome'], viewport: { width: 402, height: 874 } } },
+    // iOS-lignende motor i CI (E2E_WEBKIT=1). Visuelle tester kjøres bare i chromium – referansebildene er tatt der.
+    ...(process.env['E2E_WEBKIT'] ? [{ name: 'webkit', testIgnore: ['reference/**', 'visual/**'], use: { ...devices['Desktop Safari'], viewport: { width: 402, height: 874 } } }] : []),
+    // Referansebilder av prototypen tas bare på forespørsel: CAPTURE=1 npx playwright test --project reference
+    ...(process.env['CAPTURE'] ? [{ name: 'reference', testMatch: 'reference/**', use: { ...devices['Desktop Chrome'] } }] : []),
+  ],
   // E2E_BASE_URL satt = kjør mot ferdige containere (CI/lokal image-test), ellers start API + ng serve.
   webServer: process.env['E2E_BASE_URL'] ? undefined : [
     { command: 'dotnet run --project ../backend/src/Returapp.Api', url: 'http://localhost:5080/health', reuseExistingServer: true, timeout: 180_000 },

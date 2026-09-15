@@ -16,7 +16,7 @@ import { Icon } from '../ui/icon';
     @if (pickup.value(); as p) {
       <div class="print-area" style="border-radius:22px;border:1px solid var(--bd);background:#fff;color:#182119;padding:24px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
         <div style="font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#2E7A45">Returapp · Hentes</div>
-        <div style="color:#182119;width:180px;height:180px" [innerHTML]="qr.value()" role="img" [attr.aria-label]="'QR-kode for ' + p.id"></div>
+        <div style="color:#182119;min-width:180px;min-height:180px" [innerHTML]="qr.value()" role="img" [attr.aria-label]="'QR-kode for ' + p.id"></div>
         <div style="font-size:26px;font-weight:800;letter-spacing:-.02em">{{ p.id }}</div>
         <div style="font-size:14px;color:#66716A">{{ p.title }}<br>{{ p.giverOrg }}</div>
         <div style="font-size:12px;color:#66716A;border-top:1px dashed #E1E4DC;padding-top:12px;width:100%">Fest lappen på varen. Sjåføren skanner ved henting og kvitteringen kobles automatisk.</div>

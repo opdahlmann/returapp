@@ -6,7 +6,8 @@ test('Ark: fokus flyttes inn, Tab blir i arket, Escape lukker og gir fokus tilba
   await page.goto('/g/list');
   await page.getByRole('tab', { name: 'Historikk' }).click();
   const opener = page.getByRole('button', { name: /Eksporter historikk/ });
-  await opener.click();
+  await opener.focus(); // tastaturbruker (Safari gir ikke fokus til knapper ved klikk)
+  await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeFocused();
   for (let i = 0; i < 5; i++) {
@@ -20,7 +21,8 @@ test('Ark: fokus flyttes inn, Tab blir i arket, Escape lukker og gir fokus tilba
   await expect(opener).toBeFocused();
 });
 
-test('Offline: cachet liste vises og lagring gir toast', async ({ page, context, request, baseURL }) => {
+test('Offline: cachet liste vises og lagring gir toast', async ({ page, context, request, baseURL, browserName }) => {
+  test.skip(browserName === 'webkit', 'Playwright WebKit kan ikke navigere offline via service worker');
   const ngsw = await request.get(`${baseURL}/ngsw.json`);
   test.skip(!(ngsw.headers()['content-type'] ?? '').includes('json'), 'Service worker finnes bare i produksjonsbygget (kjør mot container med E2E_BASE_URL)');
 

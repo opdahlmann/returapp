@@ -67,3 +67,56 @@ test('Superbruker: brukerroller, og systemvarsel vises som banner hos giver', as
     expect(kari.roles.giver).toBe(false);
   }
 });
+
+test('Support: giver sender sak → superbruker svarer og lukker → giver får varsel', async ({ page, request }) => {
+  const text = `E2E hjelp ${Date.now()}`;
+  try {
+    await loginAs(page, 'jonas.hem@skanska.no');
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Hjelp og support' }).click();
+    await page.getByLabel('Melding til support').fill(text);
+    await page.getByRole('dialog').getByRole('button', { name: 'Send', exact: true }).click();
+    await expect(page.getByRole('status')).toHaveText('Takk – vi har mottatt saken din');
+    await page.getByRole('button', { name: 'Logg ut' }).click();
+
+    await loginAs(page, 'demo@returapp.no', /^Superbruker/);
+    await page.goto('/s/support');
+    const card = page.locator('div', { has: page.getByText(text) }).filter({ has: page.getByRole('button', { name: 'Svar' }) }).last();
+    await card.getByRole('button', { name: 'Svar' }).click();
+    await page.getByRole('dialog').getByLabel('Svar').fill(`E2E svar: bilder må lastes opp på nytt`);
+    await page.getByRole('button', { name: 'Send svar' }).click();
+    await expect(page.getByRole('status')).toHaveText('Svar sendt til Jonas Hem');
+    await card.getByRole('button', { name: 'Lukk sak' }).click();
+    await expect(page.getByRole('status')).toHaveText('Sak lukket');
+    await page.goto('/profile');
+    await page.getByRole('button', { name: 'Logg ut' }).click();
+
+    await loginAs(page, 'jonas.hem@skanska.no');
+    await page.getByRole('button', { name: 'Varsler' }).click();
+    await expect(page.getByRole('button', { name: /Svar fra Returapp support.*E2E svar/ })).toBeVisible();
+  } finally {
+    await cleanup(request, {});
+  }
+});
+
+test('Superbruker: ordre uten firma → tildel firma', async ({ page, request }) => {
+  const res = await request.post(`${API}/api/pickups`, {
+    headers: { Authorization: `Bearer ${await guestToken(request)}` },
+    data: { categoryId: 'metall', desc: '[e2e] tildel firma', qty: 3, unit: 'stk', cond: 'God', dims: '', address: 'Kyrkjebygda 2', postnr: '4544', day: null, slot: null, unattended: true, contact: 'E2E Gjest', phone: testPhone(), photoIds: [] },
+  });
+  const pickup = await res.json();
+  try {
+    await loginAs(page, 'demo@returapp.no', /^Superbruker/);
+    await page.goto('/s/orders');
+    await page.getByRole('tab', { name: 'Uten firma' }).click();
+    const card = page.locator('div', { has: page.getByText(pickup.title, { exact: true }) }).filter({ has: page.getByRole('button', { name: 'Tildel firma' }) }).last();
+    await card.getByRole('button', { name: 'Tildel firma' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: /Gjenbrukslageret Oslo/ }).click();
+    await page.getByRole('button', { name: 'Send ordre til firma' }).click();
+    await expect(page.getByRole('status')).toHaveText('Ordre sendt til Gjenbrukslageret Oslo');
+    const token = await apiToken(request, 'demo@returapp.no');
+    expect((await (await request.get(`${API}/api/pickups/${pickup.id}`, { headers: { Authorization: `Bearer ${token}` } })).json()).companyId).toBe('gjo');
+  } finally {
+    await cleanup(request, { pickupIds: [pickup.id] });
+  }
+});
