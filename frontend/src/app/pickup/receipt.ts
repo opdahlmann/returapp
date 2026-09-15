@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, resource } from '@angular/core';
 import { errorText, relTime } from '../core/format';
 import { co2Of, kgText, PickupApi, place, qtyText } from '../core/pickups';
-import { shareLink } from '../giver/giver-sheets';
+import { sharePdf } from '../giver/giver-sheets';
 import { ShellStore } from '../shell/shell.store';
 import { Icon } from '../ui/icon';
 import { labelUrl } from './label';
@@ -60,6 +60,6 @@ export class PickupReceipt {
   }
 
   protected share(id: string) {
-    shareLink(this.shell, labelUrl(id), `Kvittering ${id}`);
+    sharePdf(this.shell, () => this.api.pdf(`/api/pickups/${id}/receipt.pdf`), `kvittering-${id}.pdf`, labelUrl(id), `Kvittering ${id}`);
   }
 }

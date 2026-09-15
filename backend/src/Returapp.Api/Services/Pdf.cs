@@ -13,7 +13,10 @@ public static class Pdf
 
     const string Green = "#2E7A45", Muted = "#66716A", Border = "#E1E4DC", Tint = "#DDEED9", TintText = "#1F5A31";
 
-    public static byte[] Receipt(Pickup p, string categoryName, string driverName, string companyName, int co2) => Document.Create(doc => doc.Page(page =>
+    public static byte[] Receipt(Pickup p, string categoryName, string driverName, string companyName, int co2) =>
+        Document.Create(doc => ReceiptPage(doc, p, categoryName, driverName, companyName, co2)).GeneratePdf();
+
+    static void ReceiptPage(IDocumentContainer doc, Pickup p, string categoryName, string driverName, string companyName, int co2) => doc.Page(page =>
     {
         page.Size(PageSizes.A4);
         page.PageColor(Colors.White);
@@ -50,7 +53,68 @@ public static class Pdf
             });
         });
         page.Footer().AlignCenter().Text("Returapp – enkel retur og gjenbruk fra byggeplassen").FontSize(9).FontColor(Muted);
-    })).GeneratePdf();
+    });
+
+    /// Rapport: forside med miljøeffekt, tabell per kategori, liste over hentinger og én kvitteringsside per hentet ordre.
+    public static byte[] Report(string heading, string period, List<(string Name, int Count, int Kg, int Co2)> perCategory, List<string[]> rows,
+        List<(Pickup P, string Cat, string Driver, string Company, int Co2)> receipts) => Document.Create(doc =>
+    {
+        doc.Page(page =>
+        {
+            page.Size(PageSizes.A4);
+            page.PageColor(Colors.White);
+            page.Margin(40);
+            page.DefaultTextStyle(x => x.FontSize(10).FontColor("#182119"));
+            page.Content().Column(col =>
+            {
+                col.Spacing(14);
+                col.Item().Text("RETURAPP · RAPPORT").FontSize(10).Bold().FontColor(Green).LetterSpacing(0.1f);
+                col.Item().Background(Green).Padding(22).Column(h =>
+                {
+                    h.Item().Text(heading).FontSize(22).Bold().FontColor(Colors.White);
+                    h.Item().Text($"Periode {period} · {rows.Count} hentinger").FontColor(Colors.White);
+                });
+                col.Item().Row(r =>
+                {
+                    r.Spacing(10);
+                    void Stat(string value, string label) => r.RelativeItem().Background(Tint).Padding(14).Column(s =>
+                    {
+                        s.Item().Text(value).FontSize(18).Bold().FontColor(TintText);
+                        s.Item().Text(label).FontColor(TintText);
+                    });
+                    Stat(Fmt.Kg(perCategory.Sum(x => x.Kg)), "holdt i bruk");
+                    Stat(Fmt.Kg(perCategory.Sum(x => x.Co2)), "CO₂ unngått (estimert)");
+                    Stat(perCategory.Sum(x => x.Count).ToString(), "hentet");
+                });
+                col.Item().Text("Per kategori").FontSize(13).Bold();
+                col.Item().Table(t =>
+                {
+                    t.ColumnsDefinition(c => { c.RelativeColumn(3); c.RelativeColumn(); c.RelativeColumn(); c.RelativeColumn(); });
+                    Header(t, "Kategori", "Antall", "Kg", "CO₂ kg");
+                    foreach (var x in perCategory) Cells(t, x.Name, x.Count.ToString(), x.Kg.ToString(), x.Co2.ToString());
+                });
+                col.Item().Text("Hentinger").FontSize(13).Bold();
+                col.Item().Table(t =>
+                {
+                    t.ColumnsDefinition(c => { c.ConstantColumn(60); c.ConstantColumn(56); c.RelativeColumn(); c.ConstantColumn(80); c.ConstantColumn(56); });
+                    Header(t, "Ref", "Dato", "Tittel", "Status", "Kg");
+                    foreach (var row in rows) Cells(t, row);
+                });
+            });
+            page.Footer().AlignCenter().Text(x => { x.Span("Side ").FontSize(9).FontColor(Muted); x.CurrentPageNumber().FontSize(9).FontColor(Muted); });
+        });
+        foreach (var r in receipts) ReceiptPage(doc, r.P, r.Cat, r.Driver, r.Company, r.Co2);
+    }).GeneratePdf();
+
+    static void Header(TableDescriptor t, params string[] cells)
+    {
+        foreach (var c in cells) t.Cell().BorderBottom(1).BorderColor(Border).PaddingVertical(6).Text(c).FontColor(Muted).SemiBold();
+    }
+
+    static void Cells(TableDescriptor t, params string[] cells)
+    {
+        foreach (var c in cells) t.Cell().BorderBottom(1).BorderColor(Border).PaddingVertical(5).Text(c);
+    }
 
     public static byte[] Label(Pickup p, string url) => Document.Create(doc => doc.Page(page =>
     {

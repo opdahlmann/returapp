@@ -3,7 +3,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import QRCode from 'qrcode';
 import { errorText } from '../core/format';
 import { PickupApi } from '../core/pickups';
-import { shareLink } from '../giver/giver-sheets';
+import { sharePdf } from '../giver/giver-sheets';
 import { ShellStore } from '../shell/shell.store';
 import { Icon } from '../ui/icon';
 
@@ -49,7 +49,7 @@ export class PickupLabel {
 
   protected async share(id: string) {
     try {
-      await shareLink(this.shell, labelUrl(id), `Merkelapp ${id}`);
+      await sharePdf(this.shell, () => this.api.pdf(`/api/pickups/${id}/label.pdf`), `merkelapp-${id}.pdf`, labelUrl(id), `Merkelapp ${id}`);
     } catch (e) {
       this.shell.toast(errorText(e));
     }

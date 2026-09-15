@@ -16,6 +16,19 @@ export async function shareLink(shell: ShellStore, url: string, title: string, c
   shell.toast(copiedText);
 }
 
+/** Deler PDF-en som fil når enheten støtter det (Web Share Level 2), ellers lenken. */
+export async function sharePdf(shell: ShellStore, pdf: () => Promise<Blob>, fileName: string, url: string, title: string) {
+  if (navigator.canShare) {
+    try {
+      const file = new File([await pdf()], fileName, { type: 'application/pdf' });
+      if (navigator.canShare({ files: [file] })) return await navigator.share({ title, text: url, files: [file] });
+    } catch (e) {
+      if ((e as DOMException).name === 'AbortError') return; // brukeren avbrøt deling
+    }
+  }
+  await shareLink(shell, url, title);
+}
+
 @Component({
   selector: 'ra-tip-sheet',
   imports: [Icon],

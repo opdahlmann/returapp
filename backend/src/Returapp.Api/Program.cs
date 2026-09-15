@@ -106,6 +106,7 @@ app.MapPickups();
 app.MapRoutes();
 app.MapSuper();
 app.MapNotifications();
+app.MapExport();
 app.MapSupport();
 
 app.Run();
