@@ -4,24 +4,24 @@ Enkel retur og gjenbruk fra byggeplassen. Angular 22 PWA + .NET 10 Minimal API +
 
 - Design (fasit): `docs/design/Returapp-standalone.html`
 - Plan: `IMPLEMENTERINGSPLAN.md`
+- Publisering (Dokploy): `DEPLOY.md`
 
 ## Kom i gang
 
-Krever .NET 10 SDK, Node 22+, og en MongoDB (ekstern dev-server eller Docker).
+Krever .NET 10 SDK, Node 22+ og tilgang til en MongoDB (dev-server). Docker trengs kun for tester (Testcontainers) og for å teste imagene lokalt.
 
 ```sh
-cp .env.example backend/.env    # fyll inn Mongo__ConnectionString og Jwt__Secret
+cp .env.development.example .env.development   # fyll inn Mongo__ConnectionString og Jwt__Secret
 ```
 
 Backend (http://localhost:5080):
 
 ```sh
-cd backend
-dotnet run --project src/Returapp.Api
-dotnet test                     # starter Mongo i Docker (Testcontainers), eller sett TEST_MONGO
+dotnet run --project backend/src/Returapp.Api
+dotnet test backend                             # starter Mongo i Docker (Testcontainers)
 ```
 
-Frontend (http://localhost:4200):
+Frontend (http://localhost:4200, `/api` proxyes til backend):
 
 ```sh
 cd frontend
@@ -29,11 +29,4 @@ npm install
 npm start
 ```
 
-Alt i Docker (web på http://localhost:8080):
-
-```sh
-docker compose up --build                  # api mot Mongo fra backend/.env
-docker compose --profile local up --build  # med lokal Mongo (sett Mongo__ConnectionString=mongodb://mongo:27017)
-```
-
-`.env`-filer er ignorert av git og skal aldri sjekkes inn.
+`.env.*`-filer er ignorert av git og skal aldri sjekkes inn. Appen skriver aldri til lokal disk. Alle filer ligger i MongoDB.
