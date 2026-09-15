@@ -39,6 +39,7 @@ public class Pickup
     public DateTime? CancelledAt { get; set; }
     public List<StatusLogEntry> StatusLog { get; set; } = [];
     public List<Message> Messages { get; set; } = [];
+    public DateTime? GuestSmsAt { get; set; } // SMS-sperre for meldinger til gjest
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

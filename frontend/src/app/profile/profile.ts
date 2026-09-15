@@ -1,4 +1,7 @@
+import { HttpClient } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, resource } from '@angular/core';
+import { SwPush } from '@angular/service-worker';
+import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
 import { roleOrg } from '../auth/roles';
 import { AuthStore, Me } from '../core/auth.store';
@@ -58,6 +61,8 @@ export class Profile {
   private shell = inject(ShellStore);
   private router = inject(Router);
   private ref = inject(RefStore);
+  private http = inject(HttpClient);
+  private swPush = inject(SwPush);
   protected version = APP_VERSION;
 
   protected user = this.auth.user;
@@ -84,10 +89,20 @@ export class Profile {
 
   protected async toggleNotif(u: Me, key: 'push' | 'sms' | 'email') {
     try {
+      if (key === 'push' && !u.notif.push) await this.subscribePush();
       await this.auth.updateMe({ notif: { ...u.notif, [key]: !u.notif[key] } });
     } catch (e) {
       this.shell.toast(errorText(e));
     }
+  }
+
+  /** Ber om tillatelse og registrerer abonnementet. Service worker er bare aktiv i produksjonsbygget (installert PWA). */
+  private async subscribePush() {
+    if (!this.swPush.isEnabled) return this.shell.toast('Push aktiveres når appen er installert på telefonen');
+    const { publicKey } = await firstValueFrom(this.http.get<{ publicKey: string | null }>('/api/push/key'));
+    if (!publicKey) return;
+    const sub = await this.swPush.requestSubscription({ serverPublicKey: publicKey });
+    await firstValueFrom(this.http.post('/api/me/push', sub.toJSON()));
   }
 
   protected edit() {

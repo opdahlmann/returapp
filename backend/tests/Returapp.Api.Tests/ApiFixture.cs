@@ -20,6 +20,7 @@ public class ApiFixture : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("App__SeedDemo", "true");
         Environment.SetEnvironmentVariable("Sms__Provider", "Console");
         Environment.SetEnvironmentVariable("Mail__Provider", "Console");
+        Environment.SetEnvironmentVariable("Push__Provider", "Console");
         Environment.SetEnvironmentVariable("App__AuthRateLimitPerMinute", "100000");
         Environment.SetEnvironmentVariable("App__Geocode", "false");
     }
@@ -28,6 +29,7 @@ public class ApiFixture : WebApplicationFactory<Program>
 
     public string? LastSms(string phone) => Services.GetRequiredService<ConsoleSmsSender>().Last.GetValueOrDefault(phone);
     public Mail? LastMail(string to) => Services.GetRequiredService<ConsoleMailSender>().Last.GetValueOrDefault(to);
+    public string? LastPush(string endpoint) => Services.GetRequiredService<ConsolePushSender>().Last.GetValueOrDefault(endpoint);
 
     public HttpClient Client(string? accessToken = null)
     {

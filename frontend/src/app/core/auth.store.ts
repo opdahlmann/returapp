@@ -17,6 +17,7 @@ export interface Me {
   notif: { push: boolean; sms: boolean; email: boolean };
   vehicle: string | null;
   areas: string[] | null;
+  pushDevices?: number;
 }
 
 interface Session {

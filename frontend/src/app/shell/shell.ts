@@ -102,6 +102,8 @@ export class Shell {
   /** Badges på bunnmenyen for aktiv rolle: nye i innboks, åpne på børs, tråder med meldinger. */
   private async refreshBadges() {
     try {
+      if (!this.auth.isGuest())
+        this.http.get<{ unread: number }>('/api/notifications').subscribe({ next: (n) => this.shell.setBadge('notifications', n.unread), error: () => {} });
       const role = this.auth.role();
       if (role === 'admin') this.shell.setBadge('inbox', (await this.pickups.counts()).counts['ny'] ?? 0);
       if (role === 'driver') this.shell.setBadge('market', (await this.pickups.list('market')).length);

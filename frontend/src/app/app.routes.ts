@@ -25,7 +25,7 @@ export const routes: Routes = [
       { path: 'p/:id/label', data: { title: 'Merkelapp' }, loadComponent: () => import('./pickup/label').then((m) => m.PickupLabel) },
       { path: 'p/:id/receipt', data: { title: 'Kvittering' }, loadComponent: () => import('./pickup/receipt').then((m) => m.PickupReceipt) },
       { path: 'p/:id/complete', data: { title: 'Henting' }, loadComponent: () => import('./pickup/complete').then((m) => m.PickupComplete) },
-      { path: 'p/:id/thread', data: { title: 'Meldinger' }, loadComponent: () => import('./shell/empty').then((m) => m.Empty) },
+      { path: 'p/:id/thread', data: { title: 'Meldinger' }, loadComponent: () => import('./pickup/thread').then((m) => m.Thread) },
       { path: 'profile', data: { root: true, title: 'Profil' }, loadComponent: () => import('./profile/profile').then((m) => m.Profile) },
       { path: 'notifications', data: { title: 'Varsler' }, loadComponent: () => import('./notifications/notifications').then((m) => m.Notifications) },
       { path: '', pathMatch: 'full', redirectTo: () => ROLES[inject(AuthStore).role()].home },

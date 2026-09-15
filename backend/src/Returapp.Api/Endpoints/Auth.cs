@@ -241,6 +241,6 @@ public static class AuthEndpoints
     public static async Task<object> Me(Db db, User u)
     {
         var company = u.CompanyId == null ? null : await db.Companies.Find(c => c.Id == u.CompanyId).Project(c => new { c.Id, c.Name }).FirstOrDefaultAsync();
-        return new { u.Id, u.Name, u.Email, u.Phone, u.Org, u.Roles, u.CompanyId, company, u.Postnr, u.Theme, u.Notif, u.Vehicle, u.Areas };
+        return new { u.Id, u.Name, u.Email, u.Phone, u.Org, u.Roles, u.CompanyId, company, u.Postnr, u.Theme, u.Notif, u.Vehicle, u.Areas, pushDevices = u.PushSubscriptions.Count };
     }
 }

@@ -6,15 +6,15 @@ namespace Returapp.Api.Services;
 [Flags]
 public enum Channels { InApp = 0, Sms = 1, Email = 2 }
 
-/// Én vei for alle hendelser: lagrer in-app-varsel og sender SMS/e-post når hendelsen er egnet og mottakeren vil ha det.
-/// Push legges til i fase 9.
-public class Notifier(Db db, ISmsSender sms, IMailSender mail, ILogger<Notifier> log)
+/// Én vei for alle hendelser: lagrer in-app-varsel, sender push (hvis på) og SMS/e-post når hendelsen er egnet og mottakeren vil ha det.
+public class Notifier(Db db, ISmsSender sms, IMailSender mail, IPushSender push, ILogger<Notifier> log)
 {
     public async Task User(string userId, string type, string title, string body, string? pickupId = null, Channels channels = Channels.InApp)
     {
         await db.Notifications.InsertOneAsync(new Notification { UserId = userId, Type = type, Title = title, Body = body, PickupId = pickupId, CreatedAt = DateTime.UtcNow });
         var u = await db.Users.Find(x => x.Id == userId && x.Active).FirstOrDefaultAsync();
         if (u == null) return;
+        await Push(u, title, body, pickupId != null ? $"/p/{pickupId}" : "/notifications");
         if (channels.HasFlag(Channels.Sms) && u.Notif.Sms && u.Phone != null) await Safe(() => sms.Send(u.Phone, $"Returapp: {title}. {body}"));
         if (channels.HasFlag(Channels.Email) && u.Notif.Email && u.Email != null) await Safe(() => mail.Send(new Mail(u.Email, title, body)));
     }
@@ -25,8 +25,22 @@ public class Notifier(Db db, ISmsSender sms, IMailSender mail, ILogger<Notifier>
         foreach (var id in admins) await User(id, type, title, body, pickupId);
     }
 
-    /// Push kommer i fase 9; her er det bare in-app-varsler (allerede lagret av kalleren).
-    public Task PushMany(IEnumerable<string> userIds, string title, string body, string url) => Task.CompletedTask;
+    /// Push til mange (systemvarsel); in-app-varslene er allerede lagret av kalleren.
+    public async Task PushMany(IEnumerable<string> userIds, string title, string body, string url)
+    {
+        var ids = userIds.ToList();
+        foreach (var u in await db.Users.Find(x => ids.Contains(x.Id) && x.Active && x.Notif.Push && x.PushSubscriptions.Count > 0).ToListAsync())
+            await Push(u, title, body, url);
+    }
+
+    async Task Push(User u, string title, string body, string url)
+    {
+        if (!u.Notif.Push || u.PushSubscriptions.Count == 0) return;
+        var payload = PushPayload.For(title, body, url);
+        foreach (var sub in u.PushSubscriptions)
+            if (!await push.Send(sub, payload))
+                await db.Users.UpdateOneAsync(x => x.Id == u.Id, Builders<User>.Update.PullFilter(x => x.PushSubscriptions, s => s.Endpoint == sub.Endpoint));
+    }
 
     /// Gjest (ingen konto) får alltid SMS.
     public Task Sms(string phone, string text) => Safe(() => sms.Send(phone, "Returapp: " + text));

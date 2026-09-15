@@ -12,6 +12,13 @@ using Returapp.Api.Services;
 // Norsk formatering gjøres eksplisitt der den trengs.
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
+if (args.FirstOrDefault() == "vapid")
+{
+    // dotnet run --project src/Returapp.Api -- vapid  → lim inn i .env.development / Dokploy Environment
+    var keys = WebPush.VapidHelper.GenerateVapidKeys();
+    Console.WriteLine($"Push__PublicKey={keys.PublicKey}\nPush__PrivateKey={keys.PrivateKey}");
+    return;
+}
 DotEnv.Load();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +39,8 @@ if (builder.Configuration["Sms:Provider"] == "Twilio") builder.Services.AddHttpC
 else builder.Services.AddSingleton<ConsoleSmsSender>().AddSingleton<ISmsSender>(sp => sp.GetRequiredService<ConsoleSmsSender>());
 if (builder.Configuration["Mail:Provider"] == "Smtp") builder.Services.AddSingleton<IMailSender, SmtpMailSender>();
 else builder.Services.AddSingleton<ConsoleMailSender>().AddSingleton<IMailSender>(sp => sp.GetRequiredService<ConsoleMailSender>());
+if (builder.Configuration["Push:Provider"] == "WebPush" && !string.IsNullOrEmpty(builder.Configuration["Push:PrivateKey"])) builder.Services.AddSingleton<IPushSender, WebPushSender>();
+else builder.Services.AddSingleton<ConsolePushSender>().AddSingleton<IPushSender>(sp => sp.GetRequiredService<ConsolePushSender>());
 
 builder.Services.AddAuthentication().AddJwtBearer(o =>
 {
@@ -96,6 +105,7 @@ app.MapPhotos();
 app.MapPickups();
 app.MapRoutes();
 app.MapSuper();
+app.MapNotifications();
 app.MapSupport();
 
 app.Run();

@@ -56,6 +56,8 @@ Smtp__Port=587
 Smtp__User=
 Smtp__Pass=
 
+Push__Provider=<Console i dev uten nøkler | WebPush når VAPID-nøkler er satt>
+# Generer nøkler én gang: dotnet run --project backend/src/Returapp.Api -- vapid
 Push__PublicKey=
 Push__PrivateKey=
 Push__Subject=mailto:drift@returapp.no
