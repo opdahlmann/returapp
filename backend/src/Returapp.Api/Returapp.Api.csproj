@@ -9,6 +9,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
     <PackageReference Include="MongoDB.Driver" Version="3.11.2" />
+    <PackageReference Include="QRCoder" Version="1.8.0" />
+    <PackageReference Include="QuestPDF" Version="2026.9.0" />
+    <PackageReference Include="SkiaSharp" Version="4.152.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.152.0" />
   </ItemGroup>
 
   <ItemGroup>

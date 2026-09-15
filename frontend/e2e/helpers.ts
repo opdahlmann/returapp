@@ -36,3 +36,24 @@ export async function loginAs(page: Page, email: string, role?: RegExp) {
     await expect(page).not.toHaveURL(/\/roles/);
   }
 }
+
+/** Rydder testdata via dev-endepunktet (kun ordre med beskrivelse "[e2e] …" og SMS-testbrukere). */
+export async function cleanup(request: APIRequestContext, data: { pickupIds?: string[]; phones?: string[] }) {
+  expect((await request.post(`${API}/api/dev/cleanup`, { data })).status()).toBe(200);
+}
+
+/** Genererer et ekte JPEG-bilde i nettleseren (canvas). */
+export async function testJpeg(page: Page, w = 1200, h = 900): Promise<Buffer> {
+  const dataUrl = await page.evaluate(([w, h]) => {
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const x = c.getContext('2d')!;
+    x.fillStyle = '#2E7A45';
+    x.fillRect(0, 0, w, h);
+    x.fillStyle = '#B7E39B';
+    x.fillRect(w / 4, h / 4, w / 2, h / 2);
+    return c.toDataURL('image/jpeg', 0.9);
+  }, [w, h]);
+  return Buffer.from(dataUrl.split(',')[1], 'base64');
+}

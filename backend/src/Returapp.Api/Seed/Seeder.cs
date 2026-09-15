@@ -33,6 +33,31 @@ public static class Seeder
             await SeedDemo(db, DateTime.UtcNow);
             log.LogInformation("Demo-data seedet");
         }
+        if (cfg.GetValue<bool>("App:SeedDemo")) await SeedDemoPhotos(db, log);
+    }
+
+    // Bilder til demo-ordrene i samme antall som prototypen. Idempotent: bare ordre uten bilder får nye.
+    static readonly Dictionary<string, int> DemoPhotoCounts = new() { ["R-2041"] = 3, ["R-2037"] = 2, ["R-2042"] = 2, ["R-2039"] = 4, ["R-2035"] = 1, ["R-2043"] = 3, ["R-2044"] = 2, ["R-2030"] = 3, ["R-2028"] = 2 };
+
+    static async Task SeedDemoPhotos(Db db, ILogger log)
+    {
+        var ids = DemoPhotoCounts.Keys.ToList();
+        var pickups = await db.Pickups.Find(p => ids.Contains(p.Id) && p.Photos.Count == 0).ToListAsync();
+        foreach (var p in pickups)
+        {
+            var photos = new List<Photo>();
+            for (var i = 0; i < DemoPhotoCounts[p.Id]; i++)
+            {
+                var img = Images.Process(Images.Demo(p.Seq * 31 + i))!;
+                var thumb = new StoredFile { Kind = "thumb", Data = img.Thumb, Size = img.Thumb.Length, W = img.ThumbW, H = img.ThumbH, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
+                await db.Files.InsertOneAsync(thumb);
+                var file = new StoredFile { Kind = "original", Data = img.Original, Size = img.Original.Length, W = img.W, H = img.H, ThumbId = thumb.Id, PickupId = p.Id, CreatedAt = DateTime.UtcNow };
+                await db.Files.InsertOneAsync(file);
+                photos.Add(new Photo(file.Id, thumb.Id, img.W, img.H));
+            }
+            await db.Pickups.UpdateOneAsync(x => x.Id == p.Id, Builders<Pickup>.Update.Set(x => x.Photos, photos));
+        }
+        if (pickups.Count > 0) log.LogInformation("Demo-bilder lagt til på {Count} ordre", pickups.Count);
     }
 
     static async Task ImportPostnr(Db db, ILogger log)

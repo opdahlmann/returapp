@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { API, devCode, loginEmail, testPhone } from './helpers';
+import { cleanup, devCode, loginEmail, testPhone } from './helpers';
 
 test('SMS-innlogging: kode → rett inn som giver (én rolle)', async ({ page, request }) => {
   const phone = testPhone();
@@ -13,7 +13,7 @@ test('SMS-innlogging: kode → rett inn som giver (én rolle)', async ({ page, r
     await expect(page).toHaveURL(/\/g\/home$/);
     await expect(page.getByRole('navigation').getByRole('button', { name: 'Hjem' })).toBeVisible();
   } finally {
-    await request.delete(`${API}/api/dev/test-user?phone=${phone}`);
+    await cleanup(request, { phones: [phone] });
   }
 });
 

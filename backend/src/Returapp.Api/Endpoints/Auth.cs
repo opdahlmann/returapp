@@ -15,6 +15,7 @@ public static class AuthEndpoints
     public record EmailBody(string Email);
     public record ResetBody(string Token, string Password);
     public record InviteAcceptBody(string Token, string? Name, string? Password);
+    public record DevCleanup(List<string>? PickupIds, List<string>? Phones);
     public record MePatch(string? Name, string? Org, string? Email, string? Phone, string? PhoneCode, string? Postnr, string? Theme, Notif? Notif);
 
     static readonly PasswordHasher<User> Hasher = new();
@@ -195,9 +196,18 @@ public static class AuthEndpoints
                 sp.GetService<ConsoleSmsSender>()?.Last.GetValueOrDefault(Phone.Normalize(phone) ?? phone) is { } text ? Results.Ok(new { text }) : Results.NotFound());
             app.MapGet("/api/dev/last-mail", (string to, IServiceProvider sp) =>
                 sp.GetService<ConsoleMailSender>()?.Last.GetValueOrDefault(to.ToLowerInvariant()) is { } m ? Results.Ok(new { m.Subject, m.Body }) : Results.NotFound());
-            // E2E-tester rydder opp SMS-brukere de selv har opprettet (kun brukere uten e-post, altså ikke demo-brukere med passord).
-            app.MapDelete("/api/dev/test-user", async (string phone, Db db) =>
-                Results.Ok(new { deleted = (await db.Users.DeleteOneAsync(u => u.Phone == Phone.Normalize(phone) && u.Email == null && u.Name == "")).DeletedCount }));
+            // E2E-tester rydder egne data: ordre merket "[e2e]" (med bilder og varsler), og SMS-brukere/varsel-abonnement for testnummer.
+            app.MapPost("/api/dev/cleanup", async (DevCleanup b, Db db) =>
+            {
+                var ids = await db.Pickups.Find(p => (b.PickupIds ?? new()).Contains(p.Id) && p.Desc.StartsWith("[e2e]")).Project(p => p.Id).ToListAsync();
+                await db.Pickups.DeleteManyAsync(p => ids.Contains(p.Id));
+                await db.Files.DeleteManyAsync(f => ids.Contains(f.PickupId!));
+                await db.Notifications.DeleteManyAsync(n => ids.Contains(n.PickupId!));
+                var phones = (b.Phones ?? new()).Select(Phone.Normalize).OfType<string>().ToList();
+                var users = await db.Users.DeleteManyAsync(u => phones.Contains(u.Phone!) && u.Email == null && u.Name == "");
+                await db.CoverageAlerts.DeleteManyAsync(a => phones.Contains(a.Phone!));
+                return Results.Ok(new { pickups = ids.Count, users = users.DeletedCount });
+            });
         }
     }
 

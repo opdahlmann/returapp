@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Returapp.Api;
@@ -20,6 +21,13 @@ builder.Services.AddSingleton<Jwt>();
 builder.Services.AddScoped<OtpService>();
 builder.Services.AddScoped<Notifier>();
 builder.Services.AddScoped<Coverage>();
+builder.Services.AddHttpClient<Geo>();
+// Opplastinger bufres i minnet, aldri som temp-fil (krav: ingen lokal disk).
+builder.Services.Configure<FormOptions>(o =>
+{
+    o.MemoryBufferThreshold = PhotoEndpoints.MaxBytes + 512_000;
+    o.MultipartBodyLengthLimit = PhotoEndpoints.MaxBytes + 512_000;
+});
 if (builder.Configuration["Sms:Provider"] == "Twilio") builder.Services.AddHttpClient<ISmsSender, TwilioSmsSender>();
 else builder.Services.AddSingleton<ConsoleSmsSender>().AddSingleton<ISmsSender>(sp => sp.GetRequiredService<ConsoleSmsSender>());
 if (builder.Configuration["Mail:Provider"] == "Smtp") builder.Services.AddSingleton<IMailSender, SmtpMailSender>();
@@ -84,6 +92,8 @@ app.MapGet("/ready", async () =>
 app.MapAuth();
 app.MapReference();
 app.MapCompanies();
+app.MapPhotos();
+app.MapPickups();
 app.MapSupport();
 
 app.Run();

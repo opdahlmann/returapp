@@ -21,6 +21,7 @@ public class ApiFixture : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("Sms__Provider", "Console");
         Environment.SetEnvironmentVariable("Mail__Provider", "Console");
         Environment.SetEnvironmentVariable("App__AuthRateLimitPerMinute", "100000");
+        Environment.SetEnvironmentVariable("App__Geocode", "false");
     }
 
     public Db Db => Services.GetRequiredService<Db>();

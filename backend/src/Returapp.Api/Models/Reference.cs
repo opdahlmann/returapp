@@ -53,3 +53,30 @@ public class CoverageAlert
     public DateTime? NotifiedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+/// Bilde/fil lagret som dokument i MongoDB (krav: ingen lokal disk). Maks 16 MB per dokument; opplasting er begrenset til 10 MB.
+public class StoredFile
+{
+    public string Id { get; set; } = "";
+    public string Kind { get; set; } = "original"; // original | thumb
+    public string ContentType { get; set; } = "image/jpeg";
+    public int Size { get; set; }
+    public int W { get; set; }
+    public int H { get; set; }
+    public byte[] Data { get; set; } = [];
+    public string? ThumbId { get; set; }
+    public string? OwnerUserId { get; set; }
+    public string? GuestId { get; set; }
+    public string? PickupId { get; set; }
+    public DateTime? OrphanExpires { get; set; } // TTL: slettes hvis bildet aldri knyttes til en ordre
+    public DateTime CreatedAt { get; set; }
+}
+
+public class Tip
+{
+    public string Id { get; set; } = "";
+    public string Postnr { get; set; } = "";
+    public string Text { get; set; } = "";
+    public string? FromUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}

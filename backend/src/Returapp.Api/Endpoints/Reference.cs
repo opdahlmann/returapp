@@ -11,6 +11,7 @@ public static class ReferenceEndpoints
     public record CategoryBody(string? Name, string? Icon, Dictionary<string, double>? KgPerUnit);
     public record OrderBody(List<string> Ids);
     public record AlertBody(string Postnr, string? Phone);
+    public record TipBody(string Postnr, string Text);
 
     public static readonly string[] CategoryIcons = ["paller", "dorer", "vinduer", "elektro", "innredning", "mobler", "kjokken", "sanitaer", "trevirke", "isolasjon", "metall", "annet", "box", "leaf", "layers"];
     public static readonly StringComparer NbOrder = StringComparer.Create(new CultureInfo("nb-NO"), true);
@@ -112,6 +113,18 @@ public static class ReferenceEndpoints
                 ? await db.CoverageAlerts.Find(a => a.Postnr == b.Postnr && a.UserId == caller.UserId && a.NotifiedAt == null).AnyAsync()
                 : await db.CoverageAlerts.Find(a => a.Postnr == b.Postnr && a.Phone == phone && a.NotifiedAt == null).AnyAsync();
             if (!exists) await db.CoverageAlerts.InsertOneAsync(new CoverageAlert { Postnr = b.Postnr, UserId = caller.UserId, Phone = caller.UserId == null ? phone : null, CreatedAt = DateTime.UtcNow });
+            return Results.Ok();
+        }).RequireAuthorization();
+
+        // "Tips et hentefirma" – lagres og superbrukere varsles.
+        app.MapPost("/api/tips", async (TipBody b, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var text = (b.Text ?? "").Trim();
+            if (text.Length < 3 || text.Length > 500) return AuthEndpoints.Err(400, "Skriv firmanavn, telefon eller e-post");
+            var tip = new Tip { Postnr = b.Postnr ?? "", Text = text, FromUserId = ctx.User.Caller().UserId, CreatedAt = DateTime.UtcNow };
+            await db.Tips.InsertOneAsync(tip);
+            foreach (var id in await db.Users.Find(u => u.Roles.Super && u.Active).Project(u => u.Id).ToListAsync())
+                await notify.User(id, "tip", $"Tips om hentefirma i {tip.Postnr}", text);
             return Results.Ok();
         }).RequireAuthorization();
     }
