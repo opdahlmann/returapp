@@ -205,7 +205,7 @@ Status-etiketter/farger: ny=Mottatt (info), tildelt=Tildelt (warn), planlagt=Pla
 | "Åpner firmaprofil" | Firmadetalj-visning for superbruker |
 | Hardkodede tall (14, 6,2 t, 52, 94 %, 12, 1 284 …) | Beregnet av backend |
 | Hardkodede avdelinger, DAYS-liste, "Fredag 11. september", "Ons 16." | Fra database / dagens dato |
-| Bilder = teller | Reelle bilder (kamera/galleri), lagres i GridFS, vises som thumbnails |
+| Bilder = teller | Reelle bilder (kamera/galleri), lagres som dokumenter i MongoDB (`files`), vises som thumbnails |
 | Fake QR (hash-mønster) | Ekte QR med URL til ordren |
 
 ### 1.8 Avvik og uklarheter i designet (besluttet slik)
@@ -228,13 +228,20 @@ Status-etiketter/farger: ny=Mottatt (info), tildelt=Tildelt (warn), planlagt=Pla
 
 Prinsipp: **færrest mulig bevegelige deler**. Ingen lag som ikke tjener et konkret behov i designet. Ting som kan løses med plattformen (nettleser, .NET, MongoDB) løses der.
 
+**Ingen lagring på lokal disk (krav).** Appen kjører i containere, så backend skriver aldri til filsystemet:
+- Alle bilder og filer lagres som dokumenter i MongoDB (binærfelt i collection `files`). Et dokument kan være maks 16 MB, derfor er maks opplasting 10 MB, og originaler skaleres ned ved opplasting (se 2.2). Ingen GridFS, S3 eller volum.
+- PDF, CSV og xlsx genereres i minnet og strømmes rett i responsen (eller legges ved e-post). De mellomlagres aldri som filer.
+- Dev-varianter av SMS og e-post logger til stdout og holder de siste meldingene i minnet (for `/dev/last-sms`, `/dev/last-mail` og tester). Ingen `.mail-out/`-mappe.
+- Logging går kun til stdout. Postnummerregisteret er bygget inn i assemblyen (embedded resource), ikke en fil som leses fra disk.
+- Håndheves: `api`-containeren kjører med `read_only: true` (kun `tmpfs` på `/tmp` for .NET-runtime), så et utilsiktet skriv til disk feiler med en gang.
+
 ### 2.1 Oversikt
 
 ```
 ┌──────────────────────────┐   HTTPS/JSON    ┌──────────────────────────┐   MongoDB.Driver   ┌───────────┐
 │ Angular 22 PWA           │ ◀────────────▶  │ .NET 10 Minimal API      │ ◀───────────────▶ │ MongoDB   │
 │ standalone + signals     │   JWT Bearer    │ ett prosjekt, endpoints  │                    │ (dev: ekstern server) │
-│ service worker (offline) │                 │ gruppert per område      │                    │ GridFS for bilder │
+│ service worker (offline) │                 │ gruppert per område      │                    │ bilder som dokumenter │
 └──────────────────────────┘                 └──────────────────────────┘                    └───────────┘
                                                       │  SMS (OTP, varsler)   E-post (kvittering, reset)   Web Push (VAPID)
 ```
@@ -245,10 +252,10 @@ Prinsipp: **færrest mulig bevegelige deler**. Ingen lag som ikke tjener et konk
 |---|---|---|
 | Backend | Ett prosjekt `Returapp.Api`, Minimal API, endpoints i én fil per område | Ingen Clean Architecture-lag, ingen MediatR, ingen repository-abstraksjon over MongoDB.Driver. Modeller er `record`/POCO. |
 | Database | `MongoDB.Driver` direkte, collections listet i 2.5 | Indekser opprettes ved oppstart. Løpenummer via `counters`-collection (`findOneAndUpdate $inc`). |
-| Bilder | GridFS | Mongo finnes allerede; ingen S3/blob-avhengighet. Thumbnails genereres ved opplasting (ImageSharp). Bytt til objektlager hvis volum krever det. |
+| Bilder og filer | Dokumenter i collection `files` (`data` = BinData, maks 16 MB per dokument) | Krav: ingen lokal disk (se prinsippet over). Enklere enn GridFS: ett dokument per fil, vanlig `Find`/`InsertOne`. Maks opplasting 10 MB. Ved opplasting (ImageSharp): originalen skaleres ned til maks 2048 px på lengste side (JPEG, kvalitet 85, EXIF inkl. GPS fjernes), thumbnail 400 px lagres som eget dokument. Et mobilbilde havner da på ~0,3–0,8 MB i databasen. |
 | Auth | JWT access-token (15 min) + refresh-token (30 d, lagret hashet i `users.refreshTokens`) | Innebygd `JwtBearer`. Passord: `PasswordHasher<T>` fra `Microsoft.Extensions.Identity.Core` (kun hashing, ikke hele Identity). OTP: 6 siffer, 5 min TTL, maks 5 forsøk. |
 | SMS | `ISmsSender` med to implementasjoner: `ConsoleSmsSender` (dev, logger koden) og en leverandør (Twilio eller norsk leverandør – velges av bruker i fase 2) | Interface er berettiget fordi det finnes to implementasjoner fra dag én. |
-| E-post | `MailKit`/SMTP via `.env`; dev: skriv til `backend/.mail-out/` | |
+| E-post | `MailKit`/SMTP via `.env`; dev: `ConsoleMailSender` logger til stdout + buffer i minnet | Ingen filer på disk. |
 | Push | Web Push (VAPID) med `WebPush`-pakken, PWA service worker | Fase 9. SMS/e-post kommer først. |
 | Sanntid chat | Polling hvert 5. sek mens tråd er åpen | Én linje i frontend. Oppgrader til SignalR (innebygd i ASP.NET) hvis behovet oppstår. |
 | PDF | "Skriv ut": print-CSS + `window.print()`. PDF-filer (kvittering som e-postvedlegg, merkelapp for "Del", rapport): `QuestPDF` i backend | Native der det holder; QuestPDF er ett bibliotek for alle tre PDF-typene. |
@@ -270,7 +277,7 @@ Prinsipp: **færrest mulig bevegelige deler**. Ingen lag som ikke tjener et konk
 returapp/
 ├── IMPLEMENTERINGSPLAN.md
 ├── README.md
-├── .gitignore                 # .env, node_modules, bin, obj, dist, .mail-out, .DS_Store
+├── .gitignore                 # .env, node_modules, bin, obj, dist, .DS_Store
 ├── .env.example               # alle variabler, uten hemmeligheter
 ├── docker-compose.yml         # api, web (nginx), mongo (profil "local")
 ├── .github/workflows/ci.yml
@@ -338,9 +345,13 @@ Sms__From=Returapp
 Twilio__AccountSid=
 Twilio__AuthToken=
 
-# E-post (dev: File → backend/.mail-out/)
-Mail__Provider=File              # File | Smtp
-Smtp__Host=  Smtp__Port=587  Smtp__User=  Smtp__Pass=  Mail__From=noreply@returapp.no
+# E-post (dev: Console → logg, ingen filer)
+Mail__Provider=Console           # Console | Smtp
+Mail__From=noreply@returapp.no
+Smtp__Host=
+Smtp__Port=587
+Smtp__User=
+Smtp__Pass=
 
 # Web Push (genereres i fase 9: `dotnet run --project src/Returapp.Api -- vapid`)
 Push__PublicKey=
@@ -351,6 +362,10 @@ Push__Subject=mailto:drift@returapp.no
 App__BaseUrl=http://localhost:4200       # brukes i QR, delingslenker, e-post
 App__Cors=http://localhost:4200
 App__SeedDemo=true                       # seed demo-data ved oppstart hvis tomt (kun dev)
+App__Co2Factor=0.9
+
+# Tester (valgfritt): egen testdatabase i stedet for Mongo i Docker – droppes ved hver kjøring
+# TEST_MONGO=mongodb://user:pass@host:27017/returapp_test?authSource=admin
 ```
 
 Frontend har ingen hemmeligheter; `environment.ts` peker på `http://localhost:5080`, `environment.prod.ts` på relativ `/api` (nginx proxyer). `docker-compose.yml` leser root `.env` for det samme.
@@ -376,7 +391,7 @@ Alle dokumenter har `_id` (ObjectId, unntatt der annet er nevnt), `createdAt`, `
 | `coverageAlerts` | `postnr, userId? / phone?, notifiedAt?` | `postnr` |
 | `invites` | `tokenHash, role, companyId?, phone?/email?, expires, usedAt?` | TTL |
 | `passwordResets` | `userId, tokenHash, expires` | TTL |
-| GridFS `photos` | originaler + thumbnails (400px) | |
+| `files` | `_id, contentType, size, w?, h?, data (BinData, ≤ 16 MB), ownerUserId?, guestId?, pickupId?, kind: original|thumb, orphanExpires?` – originaler (nedskalert) og thumbnails (400 px) som separate dokumenter | `pickupId`, TTL på `orphanExpires` |
 
 Push-abonnementer ligger i `users.pushSubscriptions`. Pickups har i tillegg `guestId?` (fra gjest-token) ved siden av `guestPhone`.
 
@@ -425,7 +440,7 @@ Rekkefølgen er valgt slik at noe kjørbart finnes etter hver fase, og slik at f
 ### Fase 0 – Repo og fundament (½ dag)
 
 1. `git init`, `git remote add origin git@github.com:opdahlmann/returapp.git`, branch `main`.
-2. `.gitignore` (root): `.env`, `*/.env`, `node_modules/`, `bin/`, `obj/`, `dist/`, `.angular/`, `backend/.mail-out/`, `.DS_Store`, `playwright-report/`, `test-results/`.
+2. `.gitignore` (root): `.env`, `*/.env`, `node_modules/`, `bin/`, `obj/`, `dist/`, `.angular/`, `.DS_Store`, `playwright-report/`, `test-results/`.
 3. `.env.example` (innhold fra 2.4). `README.md` med "kom i gang" (kopier `.env.example` → `backend/.env`, fyll inn Mongo, `dotnet run`, `npm start`).
 4. `docker-compose.yml`: `api` (build backend), `web` (build frontend, nginx med `/api`-proxy), `mongo` under `profiles: [local]` (slik at standard er ekstern dev-DB fra `.env`).
 5. `.github/workflows/ci.yml`: to jobber (backend: `dotnet test`; frontend: `npm ci && npm test && npm run build`) + en e2e-jobb (fase 12).
@@ -441,7 +456,7 @@ Rekkefølgen er valgt slik at noe kjørbart finnes etter hver fase, og slik at f
 4. Modeller i `Models/` som records med `[BsonId]`/`[BsonElement]` der navn avviker. Enum-lignende statuser som `string`-konstanter (`PickupStatus.Ny = "ny"` …) – samme verdier som prototypen.
 5. `GET /api/health` → `{ ok, db: ping }`. CORS fra `App__Cors`. Global feilhåndtering → `ProblemDetails` (innebygd). `launchSettings.json`: `http://localhost:5080` (matcher `environment.ts`).
 6. Seed: `Seed/postnr.csv` (Bring: Postnummerregister, tab-separert `postnr, poststed, kommunenr, kommune, kategori`) importeres hvis `postnr` er tom. Demo-seed (kategorier, firma, brukere, ordre, support) når `App__SeedDemo=true` og tom DB. Datoer i demo settes relativt til i dag (R-2041 planlagt = neste onsdag osv.) slik at skjermene ser ut som prototypen.
-7. Testharness: `ApiFixture : WebApplicationFactory<Program>` som starter Mongo i Testcontainers, setter `Mongo__ConnectionString`, `Sms__Provider=Console`, `Mail__Provider=File`, `App__SeedDemo=true`. Hvis env `TEST_MONGO` er satt (f.eks. `…/returapp_test` på dev-serveren) brukes den i stedet for Docker; databasen droppes før hver testkjøring. Hjelpere: `LoginAs("jonas.hem@skanska.no")` → `HttpClient` med Bearer; `LastSms(phone)` / `LastMail(to)` leser fra Console/File-senderne.
+7. Testharness: `ApiFixture : WebApplicationFactory<Program>` som starter Mongo i Testcontainers, setter `Mongo__ConnectionString`, `Sms__Provider=Console`, `Mail__Provider=Console`, `App__SeedDemo=true`. Hvis env `TEST_MONGO` er satt (f.eks. `…/returapp_test` på dev-serveren) brukes den i stedet for Docker; databasen droppes før hver testkjøring. Hjelpere: `LoginAs("jonas.hem@skanska.no")` → `HttpClient` med Bearer; `LastSms(phone)` / `LastMail(to)` leser fra minnebufferen i Console-senderne.
 8. Tester: `Health_returns_ok`, `Seed_creates_categories_in_design_order`, `NextPickupId_is_sequential_and_unique_under_parallel_calls` (100 parallelle kall → 100 unike).
 
 *Ferdig når:* `dotnet run` svarer på `/api/health` mot dev-DB, `dotnet test` er grønt med Testcontainers.
@@ -450,7 +465,7 @@ Rekkefølgen er valgt slik at noe kjørbart finnes etter hver fase, og slik at f
 
 1. `Services/Jwt.cs`: utsted access-token (claims: `sub`, `roles`, `companyId`, `guest`), refresh-token (random 32 byte, SHA-256-hash lagres på bruker med utløp).
 2. `Services/Otp.cs`: generer 6 siffer, lagre hash + utløp 5 min + attempts i `otps`, `ISmsSender` → `ConsoleSmsSender` (logger `[SMS] +47… : 123456`) og `TwilioSmsSender` (HTTP mot Twilio REST, ingen SDK-pakke – ett `HttpClient.PostAsync`). Rate-limit: maks 3 sendinger per telefon per 10 min (teller i `otps`).
-3. `Endpoints/Auth.cs`: alle endepunkter fra 2.6. `verify`: ukjent telefon → opprett bruker med rolle `giver` (navn settes senere i profil); ved hver vellykket SMS-innlogging adopteres gjest-ordre med samme `guestPhone` (`giverUserId` settes) slik at "Opprett konto" gir gjesten historikken sin. `login`: e-post + `PasswordHasher.Verify`. `guest`: returnerer anonymt token med `guest=true` og `gid`-claim (24 t), ingen bruker. `GET /dev/last-sms` og `GET /dev/last-mail` registreres kun når `IsDevelopment()`. `forgot`/`reset`: token 1 t via e-post (`IMailSender` → `FileMailSender` skriver `.eml` til `backend/.mail-out/`, `SmtpMailSender` via MailKit). `invite/accept`: bruker opprettes/oppdateres med rolle(r) fra invitasjonen og `companyId`.
+3. `Endpoints/Auth.cs`: alle endepunkter fra 2.6. `verify`: ukjent telefon → opprett bruker med rolle `giver` (navn settes senere i profil); ved hver vellykket SMS-innlogging adopteres gjest-ordre med samme `guestPhone` (`giverUserId` settes) slik at "Opprett konto" gir gjesten historikken sin. `login`: e-post + `PasswordHasher.Verify`. `guest`: returnerer anonymt token med `guest=true` og `gid`-claim (24 t), ingen bruker. `GET /dev/last-sms` og `GET /dev/last-mail` registreres kun når `IsDevelopment()`. `forgot`/`reset`: token 1 t via e-post (`IMailSender` → `ConsoleMailSender` logger og holder siste e-poster i minnet, `SmtpMailSender` via MailKit). `invite/accept`: bruker opprettes/oppdateres med rolle(r) fra invitasjonen og `companyId`.
 4. `Require(ctx, "admin")`-hjelper og `CurrentUser(ctx)` (leser claims). Gjest tillates kun på: `POST /pickups` (krever `contact` + `phone` i body), `GET /pickups?scope=mine` (matcher `guestId`), `GET /pickups/{id}` (egen `guestId`), `POST /pickups/{id}/cancel` (egen), `GET /categories`, `GET /postnr/{nr}`, `POST /coverage-alerts {postnr, phone}`, `POST /tips`.
 5. `GET /me` returnerer bruker + `roles`-objekt + `company` (navn) slik at frontend kan vise "Hvem er du i dag?"-kortene (`who · org`).
 6. Tester: OTP-flyt ende til ende (send → les kode fra `ConsoleSmsSender`-buffer i test → verify → 200 med roller), feil kode ×5 → 429/låst, login med feil passord → 401, refresh roterer token og gammelt avvises, gjest kan opprette ordre men får 403 på `/pickups?scope=company`, admin fra firma A får 404 på ordre i firma B, invitasjon gir riktig rolle + companyId, passord-reset-token engangs.
@@ -490,14 +505,14 @@ Frontend
 ### Fase 5 – Henteordre: wizard, bilder, detalj, liste, merkelapp, kvittering (3 dager)
 
 Backend
-1. `Endpoints/Photos.cs`: `POST /photos` (multipart, maks 10 MB, kun image/*; original → GridFS, thumbnail 400 px → GridFS; returnerer `{fileId, thumbId, w, h}`), `GET /photos/{id}` (streamer med cache-headers; krever token – giver egne, firma sine, super alle).
+1. `Endpoints/Photos.cs`: `POST /photos` (multipart, maks 10 MB → 413 over det, kun image/* verifisert ved dekoding i ImageSharp; leses til `MemoryStream`, aldri temp-fil – `FormOptions.MemoryBufferThreshold` settes til 10 MB så ASP.NET ikke bufrer til disk; original skaleres til maks 2048 px JPEG → dokument i `files`, thumbnail 400 px → eget dokument; returnerer `{fileId, thumbId, w, h}`), `GET /photos/{id}` (leser dokumentet og returnerer `data` med riktig `Content-Type` og cache-headers; krever token – giver egne, firma sine, super alle). Opplastede bilder som aldri knyttes til en ordre ryddes: `files` med `pickupId = null` eldre enn 24 t slettes via TTL-indeks på `orphanExpires` (feltet fjernes når bildet knyttes til ordre).
 2. `Endpoints/Pickups.cs`:
    - `POST /pickups`: validering (kategori finnes, qty > 0, unit i liste, cond i liste, postnr 4 siffer og i register, adresse ≥ 3 tegn), `kommune` fra register, `companyId` fra dekning, `estKg` fra `Weight`, `title = "{qty} {unit} {kategorinavn lower}"`, `statusLog: [{ny}]`, geokoding (Kartverket `https://ws.geonorge.no/adresser/v1/sok?sok=…&postnummer=…`, best-effort, timeout 2 s), `NextPickupId()`. Gjest: `guestId` fra claim, `contact`/`phone` påkrevd i body → `guestPhone`. Etter lagring: notifikasjon til firmaets admin(er) ("Ny henteordre R-2045"), til giver SMS/e-post-bekreftelse (etter preferanser; gjest alltid SMS).
    - `GET /pickups` med `scope`: `mine` (giverUserId, eller guestId for gjest, eller guestPhone = brukerens telefon for gjest-ordre som er "adoptert" etter kontoopprettelse) + `filter=aktive|ferdige`; `company` (+`status`); `driver` (driverId = meg, `date`); `market` (companyId = mitt, `open && ny`); `all` (super, `filter=ubehandlet|utenfirma|behandlet`). Returnerer DTO med utledede felter som frontend trenger (`statusLabel` beregnes i frontend; backend gir `driverName`, `companyName`, `categoryName`, `categoryIcon`, `kommune`, `photoCount`, `lastMessage`, `suggestedDriverId/Name`).
    - `GET /pickups/{id}` (eierskap), `POST /pickups/{id}/cancel` (giver, kun aktiv → `avbrutt`, notifiser firma).
 2b. `Services/Notify.cs`: én hjelper `Notify(userIds | guestPhone, type, title, body, pickupId)` som skriver til `notifications` og sender SMS/e-post etter mottakerens `notif`-preferanser. Alle hendelser i fase 5–8 går gjennom denne; fase 9 legger bare til push.
 3. `Endpoints/Export.cs` – kun `receipt.pdf` og `label.pdf` i denne fasen (QuestPDF: samme innhold som skjermene; brukes for e-postvedlegg og "Del"). Kvittering sendes på e-post ved `hentet` (fase 7) hvis `notif.email`.
-4. Tester: opprett ordre som giver (id `R-2045`, company `omb`, status `ny`, estKg), opprett i postnr uten dekning → `companyId=null` og synlig i `scope=all&filter=utenfirma`, gjest-ordre, validering (400 på manglende qty), giver ser ikke andres ordre, cancel på hentet → 409, bildeopplasting gir thumbnail, `receipt.pdf` returnerer `application/pdf`.
+4. Tester: opprett ordre som giver (id `R-2045`, company `omb`, status `ny`, estKg), opprett i postnr uten dekning → `companyId=null` og synlig i `scope=all&filter=utenfirma`, gjest-ordre, validering (400 på manglende qty), giver ser ikke andres ordre, cancel på hentet → 409, bildeopplasting lagrer original + thumbnail som to dokumenter i `files` (ingen filer skrevet til disk), fil over 10 MB → 413, ikke-bilde → 400, bilde uten tilknytning har `orphanExpires`, `receipt.pdf` returnerer `application/pdf`.
 
 Frontend
 5. `PickupStore`: `list(scope, params)`, `get(id)`, `create(dto)`, `cancel(id)`, cache med `refresh()`; polling ikke nødvendig her.
@@ -594,6 +609,7 @@ Frontend
 1. `GET /export/pickups.csv?scope=mine|company&from&to`: UTF-8 med BOM, `;`-separert (norsk Excel), kolonner: Referanse, Opprettet, Status, Kategori, Tittel, Mengde, Enhet, Tilstand, Adresse, Postnr, Kommune, Giver, Kontakt, Hentefirma, Sjåfør, Planlagt dag, Tidsvindu, Hentet, Hentet mengde, Anslått kg, CO₂ kg, Avvik.
 2. `.xlsx` (ClosedXML): ark "Hentinger" (samme kolonner) + ark "Per kategori" (kg, antall, CO₂ per kategori).
 3. `.pdf` (QuestPDF): forside med periode og miljøeffekt (kg, CO₂, antall), tabell per kategori, liste over hentinger, én kvitteringsside per hentet ordre.
+3b. Alle tre formater bygges i `MemoryStream` og returneres med `Results.File(bytes, mime, filnavn)`. Ingenting skrives til disk.
 4. Frontend sheet `export`: valg → `GET` som blob → `URL.createObjectURL` → `<a download>` (fungerer i PWA) + toast "CSV-fil lastet ned". `receipt`/`label` "Del" bruker Web Share med fil hvis `navigator.canShare({files})`, ellers lenke.
 5. Tester: CSV har riktig antall rader og BOM; xlsx åpnes av ClosedXML og har 2 ark; pdf > 1 KB og starter med `%PDF`; admin får bare eget firma i eksporten.
 
@@ -625,7 +641,7 @@ Målet "helt lik" verifiseres systematisk, ikke etter skjønn.
 ### Fase 13 – Deploy og drift (½–1 dag)
 
 1. `backend/Dockerfile` (multi-stage, `mcr.microsoft.com/dotnet/aspnet:10.0`), `frontend/Dockerfile` (build → nginx med `try_files` for SPA og `/api` → `api:8080`, `Cache-Control` for `ngsw`-filer).
-2. `docker-compose.yml` for prod med `.env`; helsesjekk på `/api/health`.
+2. `docker-compose.yml` for prod med `.env`; helsesjekk på `/api/health`. `api` kjører med `read_only: true` + `tmpfs: [/tmp]` og ingen volumer (håndhever kravet om ingen lokal disk). Kun `mongo`-tjenesten (profil `local`) har volum.
 3. GitHub Actions `deploy.yml` (manuell trigger / tag): bygg images, push til GHCR. Selve serveren er brukerens valg (dokumenteres som "kjør `docker compose pull && up -d`").
 4. Logging: `Serilog` er ikke nødvendig – innebygd `ILogger` til stdout (JSON-format i prod via `builder.Logging.AddJsonConsole()`). Feil fra frontend: `ErrorHandler` som POSTer til `/api/client-errors` (kun melding + url + versjon).
 5. Backup: `mongodump`-cron er utenfor appen; dokumenteres i README.
@@ -637,7 +653,7 @@ Målet "helt lik" verifiseres systematisk, ikke etter skjønn.
 
 | Nivå | Verktøy | Hva | Kjøres |
 |---|---|---|---|
-| Backend integrasjon | xUnit + `WebApplicationFactory` + Testcontainers Mongo | Hvert endepunkt: lykkes-sti, validering, autorisasjon (rolle + eierskap), statusoverganger, notifikasjons-sideeffekter (fanges i `ConsoleSmsSender`/`FileMailSender`/`FakePush` i test), aggregeringer mot kjent seed | `dotnet test`, CI |
+| Backend integrasjon | xUnit + `WebApplicationFactory` + Testcontainers Mongo | Hvert endepunkt: lykkes-sti, validering, autorisasjon (rolle + eierskap), statusoverganger, notifikasjons-sideeffekter (fanges i minnebufferen til `ConsoleSmsSender`/`ConsoleMailSender`/`FakePush` i test), aggregeringer mot kjent seed | `dotnet test`, CI |
 | Backend enhet | xUnit | `Weight`, `Jwt`, `Otp`, `.env`-loader, CSV-formatering, km-beregning | samme |
 | Frontend enhet | Vitest | `format.ts`, stores, wizard-validering, tidslinje-logikk, dag-chips, sheet/toast | `npm test`, CI |
 | Frontend komponent | Vitest + Angular TestBed | Detalj-side viser riktige handlinger per rolle × status (tabell-test: 4 roller × 7 statuser), innboks-filtre, stat-kort-formatering | samme |
@@ -656,7 +672,7 @@ Regel: ingen fase er ferdig uten testene sine grønne. Mocking begrenses til eks
 | 1 | SMS-leverandør | Må velges før fase 2 kan testes reelt (dev fungerer med Console). Twilio er enklest å integrere uten SDK; norske alternativer (f.eks. Sveve, Link Mobility) har lignende HTTP-API. |
 | 2 | E-postutsending i prod | SMTP-konto (f.eks. Postmark/SendGrid/eget). Dev skriver til fil. |
 | 3 | Push på iOS | Krever at appen er lagt til hjemskjerm (iOS 16.4+). SMS er fallback for givere. |
-| 4 | Bildevolum | GridFS i samme Mongo. Ved > noen GB: flytt til objektlager (S3-kompatibelt); `Photos.cs` er eneste sted som må endres. |
+| 4 | Bildevolum i databasen | Filer ligger i MongoDB (krav). Nedskalering til 2048 px holder snittet under 1 MB per bilde, og foreldreløse opplastinger slettes etter 24 t. Følg med på databasestørrelse og backup-tid. Ved behov kan kvalitet/oppløsning justeres i `Photos.cs`, som er eneste sted som håndterer filer. |
 | 5 | Km-estimat | Luftlinje × 1,3 er "ca". Bytt til ruting-API (f.eks. OSRM/Google) hvis admin trenger nøyaktige tall. |
 | 6 | Postnummerregister | Brings CSV endres årlig; legg inn kommando `-- import-postnr <fil>` for oppdatering. |
 | 7 | Kg-faktorer per kategori | Prototypen bruker 18 kg × antall uansett. Reelle faktorer må fylles inn av fagperson; feltet finnes. |
@@ -747,6 +763,13 @@ Alle `data-act`, `data-type` (sheets), `sc.*` (skjermer) og `data-to` (navigasjo
 - Fase 9 (varsler) forutsetter at hendelsene i 5–8 kaller én felles `Notify(userIds, type, …)`-hjelper. **Presisering:** hjelperen opprettes allerede i fase 5 (skriver til `notifications` og kaller SMS/e-post); fase 9 legger bare til push og frontend. Dette unngår omskriving.
 - Fase 12 (visuell) kan starte referansefangst (12.1) allerede i fase 3, siden den bare trenger prototypen.
 
-### 7.5 Konklusjon
+### 7.5 Endringer etter validering
+
+| Dato | Endring | Berørte steder |
+|---|---|---|
+| 2026-09-15 | Krav fra bruker: ingen lagring på lokal disk (appen kjører i containere). Alle bilder og filer lagres som dokumenter i MongoDB (`files`, maks 16 MB per dokument) i stedet for GridFS. Dev-e-post logges i stedet for å skrives til `.mail-out/`. Eksport/PDF genereres i minnet. `api`-containeren kjører `read_only`. | 1.7, 2 (prinsipp), 2.1, 2.2, 2.4, 2.5, fase 0, 1, 2, 5, 10, 13, 4 (teststrategi), 5 (risiko 4) |
+| 2026-09-15 | Alt arbeid etter fase 0 gjøres i branch `opd`. Brukere som opprettes (seed/test) dokumenteres øverst i `README.md` med brukernavn, passord og rolle. Kun testdata i databasen. | Fase 1 og videre |
+
+### 7.6 Konklusjon
 
 Planen dekker alle skjermer, handlinger og sheets i prototypen for alle fire roller pluss gjest, definerer datamodell og API som er tilstrekkelig for alt som i dag er mock, har tester på alle nivåer inkludert pixel-sammenligning mot prototypen, og har ingen kjente interne motsigelser etter rettelsene over. Første konkrete handling er fase 0: `git init`, `.env.example` og at brukeren fyller inn dev-databasen i `backend/.env`.

@@ -5,7 +5,6 @@ bin/
 obj/
 dist/
 .angular/
-backend/.mail-out/
 .DS_Store
 playwright-report/
 test-results/
