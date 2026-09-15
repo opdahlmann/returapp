@@ -15,7 +15,7 @@ public static class AuthEndpoints
     public record EmailBody(string Email);
     public record ResetBody(string Token, string Password);
     public record InviteAcceptBody(string Token, string? Name, string? Password);
-    public record DevCleanup(List<string>? PickupIds, List<string>? Phones);
+    public record DevCleanup(List<string>? PickupIds, List<string>? Phones, List<string>? CompanyIds);
     public record MePatch(string? Name, string? Org, string? Email, string? Phone, string? PhoneCode, string? Postnr, string? Theme, Notif? Notif);
 
     static readonly PasswordHasher<User> Hasher = new();
@@ -208,6 +208,12 @@ public static class AuthEndpoints
                 var phones = (b.Phones ?? new()).Select(Phone.Normalize).OfType<string>().ToList();
                 var users = await db.Users.DeleteManyAsync(u => phones.Contains(u.Phone!) && u.Email == null && u.Name == "");
                 await db.CoverageAlerts.DeleteManyAsync(a => phones.Contains(a.Phone!));
+                var companies = await db.Companies.Find(c => (b.CompanyIds ?? new()).Contains(c.Id) && c.Name.StartsWith("E2E ")).Project(c => c.Id).ToListAsync();
+                await db.Companies.DeleteManyAsync(c => companies.Contains(c.Id));
+                await db.Invites.DeleteManyAsync(i => companies.Contains(i.CompanyId!));
+                await db.Support.DeleteManyAsync(s => s.Text.Contains("E2E "));
+                await db.Notices.DeleteManyAsync(n => n.Text.StartsWith("[e2e]"));
+                await db.Notifications.DeleteManyAsync(n => n.Body.StartsWith("[e2e]") || n.Body.Contains("E2E "));
                 return Results.Ok(new { pickups = ids.Count, users = users.DeletedCount });
             });
         }

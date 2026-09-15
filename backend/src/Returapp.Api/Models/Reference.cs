@@ -82,6 +82,15 @@ public class RoutePlan
     public DateTime UpdatedAt { get; set; }
 }
 
+public class Notice
+{
+    public string Id { get; set; } = "";
+    public string Text { get; set; } = "";
+    public string To { get; set; } = "alle"; // alle | hentefirma
+    public string? SentByUserId { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
 public class Tip
 {
     public string Id { get; set; } = "";

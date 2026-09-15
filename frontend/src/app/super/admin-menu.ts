@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { SuperApi } from '../core/super';
 import { RouterLink } from '@angular/router';
 import { Icon } from '../ui/icon';
 import { ShellStore } from '../shell/shell.store';
@@ -25,6 +26,11 @@ import { ShellStore } from '../shell/shell.store';
 })
 export class AdminMenu {
   protected shell = inject(ShellStore);
+
+  constructor() {
+    inject(SuperApi).stats().then((s) => this.shell.setBadge('pendingCompanies', s.pendingCompanies.length), () => {});
+  }
+
   protected items = [
     { path: '/s/companies', icon: 'building', title: 'Hentefirma', sub: 'Godkjenn, dekning, kontakt', badge: 'pendingCompanies' },
     { path: '/s/users', icon: 'users', title: 'Brukere og roller', sub: 'Giver, sjåfør, admin, superbruker' },

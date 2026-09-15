@@ -10,6 +10,7 @@ export const routes: Routes = [
   { path: 'code', loadComponent: () => import('./auth/code').then((m) => m.Code) },
   { path: 'roles', canMatch: [authGuard], loadComponent: () => import('./auth/roles').then((m) => m.RolePicker) },
   { path: 'invite/:token', loadComponent: () => import('./auth/invite').then((m) => m.InvitePage) },
+  { path: 'apply', loadComponent: () => import('./auth/apply').then((m) => m.ApplyPage) },
   { path: 'reset/:token', loadComponent: () => import('./auth/reset').then((m) => m.ResetPage) },
   {
     path: '',

@@ -6,6 +6,7 @@ import { isActive, kgText, Pickup, PickupApi, place, qtyText, statusBg, statusFg
 import { ShellStore } from '../shell/shell.store';
 import { AssignSheet } from './assign-sheet';
 import { AvvikSheet } from './avvik-sheet';
+import { CompanySheet } from '../super/super';
 import { Icon } from '../ui/icon';
 import { PhotoImg } from '../ui/photo';
 
@@ -191,6 +192,8 @@ export class PickupDetail {
           return this.router.navigateByUrl(`/p/${p.id}/complete`);
         case 'deviation':
           return this.shell.openSheet(AvvikSheet, { pickup: p });
+        case 'company':
+          return this.shell.openSheet(CompanySheet, { pickup: p, done: reload });
         case 'market':
           await this.api.market(p.id, !p.open);
           this.shell.toast(p.open ? 'Fjernet fra børsen' : 'Lagt på oppdragsbørsen');

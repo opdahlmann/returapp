@@ -11,6 +11,9 @@ public class Company
     public DateTime? Since { get; set; }
     public List<string> Coverage { get; set; } = []; // kommuner
     public List<Department> Departments { get; set; } = [];
+    public string? ContactName { get; set; }
+    public string? ContactEmail { get; set; }
+    public string? ContactPhone { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

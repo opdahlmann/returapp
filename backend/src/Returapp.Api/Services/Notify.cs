@@ -25,6 +25,9 @@ public class Notifier(Db db, ISmsSender sms, IMailSender mail, ILogger<Notifier>
         foreach (var id in admins) await User(id, type, title, body, pickupId);
     }
 
+    /// Push kommer i fase 9; her er det bare in-app-varsler (allerede lagret av kalleren).
+    public Task PushMany(IEnumerable<string> userIds, string title, string body, string url) => Task.CompletedTask;
+
     /// Gjest (ingen konto) får alltid SMS.
     public Task Sms(string phone, string text) => Safe(() => sms.Send(phone, "Returapp: " + text));
 

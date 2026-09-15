@@ -40,6 +40,7 @@ public class Db
     public IMongoCollection<StoredFile> Files => Database.GetCollection<StoredFile>("files");
     public IMongoCollection<Tip> Tips => Database.GetCollection<Tip>("tips");
     public IMongoCollection<RoutePlan> Routes => Database.GetCollection<RoutePlan>("routes");
+    public IMongoCollection<Notice> Notices => Database.GetCollection<Notice>("notices");
     IMongoCollection<BsonDocument> Raw(string name) => Database.GetCollection<BsonDocument>(name);
 
     public async Task Ping() => await Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));

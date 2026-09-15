@@ -12,6 +12,7 @@ public static class PickupEndpoints
 
     public record AssignBody(string? DriverId, string? Day, string? Slot);
     public record MarketBody(bool Open);
+    public record CompanyBody(string? CompanyId);
     public record CompleteBody(double Qty, string? Note, List<string>? PhotoIds);
     public record DeviationBody(string? Reason, string? Note);
 
@@ -256,6 +257,23 @@ public static class PickupEndpoints
             if (updated.GiverUserId != null) await notify.User(updated.GiverUserId, "pickup.deviation", "Avvik på hentingen", text, id, Channels.Sms);
             else if (updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, $"Avvik på {id}: {text}");
             return Results.Ok((await Dtos(db, [updated]))[0]);
+        });
+
+        // Superbruker tildeler/bytter hentefirma: sjåfør nullstilles, status ny, nytt firma varsles.
+        g.MapPost("/{id}/company", async (string id, CompanyBody b, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var c = ctx.User.Caller();
+            if (!c.Has("super")) return AuthEndpoints.Err(403, "Kun for superbruker");
+            var company = await db.Companies.Find(x => x.Id == b.CompanyId && x.Status == CompanyStatus.Aktiv).FirstOrDefaultAsync();
+            if (company == null) return AuthEndpoints.Err(400, "Velg et aktivt hentefirma");
+            var now = DateTime.UtcNow;
+            var p = await db.Pickups.FindOneAndUpdateAsync(x => x.Id == id && Active.Contains(x.Status),
+                Builders<Pickup>.Update.Set(x => x.CompanyId, company.Id).Set(x => x.DriverId, null).Set(x => x.Status, PickupStatus.Ny).Set(x => x.Open, false)
+                    .Set(x => x.Day, null).Set(x => x.Slot, null).Set(x => x.UpdatedAt, now).Push(x => x.StatusLog, new StatusLogEntry(PickupStatus.Ny, now, c.UserId)),
+                new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (p == null) return AuthEndpoints.Err(409, "Bare aktive ordre kan få nytt firma");
+            await notify.CompanyAdmins(company.Id, "pickup.new", $"Ny henteordre {id}", $"{p.Title} i {p.Postnr} {p.Kommune} (tildelt av Returapp)", id);
+            return Results.Ok((await Dtos(db, [p], suggest: true))[0]);
         });
 
         g.MapPost("/{id}/market", async (string id, MarketBody b, HttpContext ctx, Db db, Notifier notify) =>

@@ -95,6 +95,7 @@ app.MapCompanies();
 app.MapPhotos();
 app.MapPickups();
 app.MapRoutes();
+app.MapSuper();
 app.MapSupport();
 
 app.Run();

@@ -38,7 +38,7 @@ export async function loginAs(page: Page, email: string, role?: RegExp) {
 }
 
 /** Rydder testdata via dev-endepunktet (kun ordre med beskrivelse "[e2e] …" og SMS-testbrukere). */
-export async function cleanup(request: APIRequestContext, data: { pickupIds?: string[]; phones?: string[] }) {
+export async function cleanup(request: APIRequestContext, data: { pickupIds?: string[]; phones?: string[]; companyIds?: string[] }) {
   expect((await request.post(`${API}/api/dev/cleanup`, { data })).status()).toBe(200);
 }
 
@@ -56,4 +56,8 @@ export async function testJpeg(page: Page, w = 1200, h = 900): Promise<Buffer> {
     return c.toDataURL('image/jpeg', 0.9);
   }, [w, h]);
   return Buffer.from(dataUrl.split(',')[1], 'base64');
+}
+
+export async function guestToken(request: APIRequestContext): Promise<string> {
+  return (await (await request.post(`${API}/api/auth/guest`)).json()).accessToken;
 }

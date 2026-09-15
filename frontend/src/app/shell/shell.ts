@@ -1,6 +1,7 @@
 import { Location } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AuthStore } from '../core/auth.store';
 import { PickupApi } from '../core/pickups';
@@ -37,6 +38,9 @@ import { ShellStore } from './shell.store';
       }
     </div>
     <div style="flex:1;overflow:auto;padding:4px 20px 120px;scrollbar-width:none;display:flex;flex-direction:column;gap:14px">
+      @for (n of notices(); track n.id) {
+        <div role="alert" style="border-radius:16px;padding:14px;background:var(--warn-bg);color:var(--warn);display:flex;gap:10px;align-items:flex-start;flex-shrink:0"><ra-icon name="megaphone" /><div style="flex:1;font-size:14px;line-height:1.45;font-weight:600">{{ n.text }}</div><button (click)="dismiss(n.id)" aria-label="Lukk varsel" style="border:0;background:none;color:var(--warn);padding:0"><ra-icon name="x" [size]="18" /></button></div>
+      }
       <router-outlet />
     </div>
     @if (isRoot()) {
@@ -60,6 +64,10 @@ export class Shell {
   private router = inject(Router);
   private location = inject(Location);
   private pickups = inject(PickupApi);
+  private http = inject(HttpClient);
+  private allNotices = signal<{ id: string; text: string }[]>([]);
+  private dismissed = signal<string[]>(JSON.parse(sessionStorage.getItem('ra.dismissed') ?? '[]'));
+  protected notices = computed(() => (this.isRoot() ? this.allNotices().filter((n) => !this.dismissed().includes(n.id)) : []));
 
   private route = signal(deepest(this.router.routerState.snapshot.root));
   private url = signal(this.router.url);
@@ -83,6 +91,12 @@ export class Shell {
       }
     });
     this.refreshBadges();
+    if (!this.auth.isGuest()) this.http.get<{ id: string; text: string }[]>('/api/notices/active').subscribe({ next: (n) => this.allNotices.set(n), error: () => {} });
+  }
+
+  protected dismiss(id: string) {
+    this.dismissed.update((d) => [...d, id]);
+    sessionStorage.setItem('ra.dismissed', JSON.stringify(this.dismissed()));
   }
 
   /** Badges på bunnmenyen for aktiv rolle: nye i innboks, åpne på børs, tråder med meldinger. */
