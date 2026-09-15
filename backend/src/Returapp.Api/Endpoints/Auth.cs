@@ -124,6 +124,8 @@ public static class AuthEndpoints
             user.Name = name;
             user.Roles = new() { Giver = user.Roles.Giver || inv.Roles.Giver, Driver = user.Roles.Driver || inv.Roles.Driver, Admin = user.Roles.Admin || inv.Roles.Admin, Super = user.Roles.Super || inv.Roles.Super };
             user.CompanyId = inv.CompanyId ?? user.CompanyId;
+            user.Vehicle = inv.Vehicle ?? user.Vehicle;
+            user.Areas = inv.Areas ?? user.Areas;
             if (user.CompanyId != null && string.IsNullOrEmpty(user.Org))
                 user.Org = await db.Companies.Find(c => c.Id == user.CompanyId).Project(c => c.Name).FirstOrDefaultAsync() ?? "";
             if (b.Password != null && user.Email != null) user.PasswordHash = Hasher.HashPassword(user, b.Password);

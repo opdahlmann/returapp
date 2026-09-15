@@ -27,7 +27,9 @@ public static class Fmt
     public static string Kg(double kg) => kg >= 1000 ? (kg / 1000).ToString("0.0", Nb) + " t" : $"{Math.Round(kg)} kg";
     public static string Qty(double q) => q.ToString("0.##", Nb);
 
-    /// "+4791234567" → "912 34 567"
+    /// "+4791234567" → "912 34 567" (mobil), "+4738152000" → "38 15 20 00" (fasttelefon)
     public static string Phone(string? e164) =>
-        e164 is { Length: 11 } && e164.StartsWith("+47") ? $"{e164[3..6]} {e164[6..8]} {e164[8..]}" : e164 ?? "";
+        e164 is { Length: 11 } && e164.StartsWith("+47")
+            ? e164[3] is '4' or '9' ? $"{e164[3..6]} {e164[6..8]} {e164[8..]}" : $"{e164[3..5]} {e164[5..7]} {e164[7..9]} {e164[9..]}"
+            : e164 ?? "";
 }

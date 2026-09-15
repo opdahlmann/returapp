@@ -4,14 +4,13 @@ import { AuthStore } from '../core/auth.store';
 import { errorText, phone, relTime } from '../core/format';
 import { isActive, kgText, Pickup, PickupApi, place, qtyText, statusBg, statusFg, statusLabel, timeline, when } from '../core/pickups';
 import { ShellStore } from '../shell/shell.store';
+import { AssignSheet } from './assign-sheet';
 import { Icon } from '../ui/icon';
 import { PhotoImg } from '../ui/photo';
 
 const ROW = 'display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--bd);font-size:14px';
 const BTN_SEC = 'height:48px;border-radius:14px;border:1px solid var(--bd);background:var(--sf);font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px';
 
-/** Registrerer handlinger som andre faser kobler på (tildeling, børs, start, avvik, firma). */
-export const DETAIL_ACTIONS: Partial<Record<string, (p: Pickup, reload: () => void) => void>> = {};
 
 @Component({
   selector: 'ra-pickup-detail',
@@ -99,8 +98,8 @@ export const DETAIL_ACTIONS: Partial<Record<string, (p: Pickup, reload: () => vo
         }
         @case ('admin') {
           @if (p.status === 'ny') {
-            @if (suggestion(); as s) {
-              <div style="border-radius:16px;padding:14px;background:var(--tint);color:var(--tint-tx);display:flex;gap:12px;align-items:center"><span><ra-icon name="star" /></span><div style="flex:1;font-size:14px"><b>Forslag:</b> {{ s }}</div></div>
+            @if (p.suggestedDriverName) {
+              <div style="border-radius:16px;padding:14px;background:var(--tint);color:var(--tint-tx);display:flex;gap:12px;align-items:center"><span><ra-icon name="star" /></span><div style="flex:1;font-size:14px"><b>Forslag:</b> {{ suggestion(p) }}</div></div>
             }
             <button (click)="act('assign', p)" style="height:54px;border:0;border-radius:14px;background:var(--pri);color:var(--pri-tx);font-weight:800;font-size:16px">Tildel sjåfør og planlegg</button>
             <button (click)="act('market', p)" [style]="btnSec"><ra-icon name="tag" />{{ p.open ? 'Fjern fra børs' : 'Legg på børs' }}</button>
@@ -141,7 +140,6 @@ export class PickupDetail {
   protected role = this.auth.role;
   protected rows = computed(() => (this.pickup.value() ? timeline(this.pickup.value()!) : []));
   protected full = signal<string | null>(null);
-  protected suggestion = signal<string | null>(null);
   protected row = ROW;
   protected btnSec = BTN_SEC;
   protected place = place;
@@ -175,10 +173,28 @@ export class PickupDetail {
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}`, '_blank');
   }
 
-  protected act(name: string, p: Pickup) {
-    const handler = DETAIL_ACTIONS[name];
-    if (handler) handler(p, () => this.reload());
-    else this.shell.toast('Kommer snart');
+  protected suggestion(p: Pickup) {
+    return p.suggestedCoversArea
+      ? `${p.suggestedDriverName} dekker ${p.postnr} ${p.kommune} og har ${p.suggestedLoad} oppdrag planlagt.`
+      : `${p.suggestedDriverName} har færrest oppdrag (${p.suggestedLoad}) akkurat nå.`;
+  }
+
+  protected async act(name: string, p: Pickup) {
+    const reload = () => this.reload();
+    try {
+      switch (name) {
+        case 'assign':
+          return this.shell.openSheet(AssignSheet, { pickup: p, preselect: p.driverId ?? p.suggestedDriverId ?? null, done: reload });
+        case 'market':
+          await this.api.market(p.id, !p.open);
+          this.shell.toast(p.open ? 'Fjernet fra børsen' : 'Lagt på oppdragsbørsen');
+          return reload();
+        default:
+          this.shell.toast('Kommer snart');
+      }
+    } catch (e) {
+      this.shell.toast(errorText(e));
+    }
   }
 
   protected cancel(p: Pickup) {

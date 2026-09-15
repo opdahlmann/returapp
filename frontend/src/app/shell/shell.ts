@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRouteSnapshot, NavigationEnd, NavigationStart, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { AuthStore } from '../core/auth.store';
+import { PickupApi } from '../core/pickups';
 import { initials } from '../core/format';
 import { ROLES, TABS } from '../core/roles';
 import { Icon } from '../ui/icon';
@@ -58,6 +59,7 @@ export class Shell {
   private auth = inject(AuthStore);
   private router = inject(Router);
   private location = inject(Location);
+  private pickups = inject(PickupApi);
 
   private route = signal(deepest(this.router.routerState.snapshot.root));
   private url = signal(this.router.url);
@@ -77,8 +79,22 @@ export class Shell {
       if (e instanceof NavigationEnd) {
         this.route.set(deepest(this.router.routerState.snapshot.root));
         this.url.set(e.urlAfterRedirects);
+        if (this.isRoot()) this.refreshBadges();
       }
     });
+    this.refreshBadges();
+  }
+
+  /** Badges på bunnmenyen for aktiv rolle: nye i innboks, åpne på børs, tråder med meldinger. */
+  private async refreshBadges() {
+    try {
+      const role = this.auth.role();
+      if (role === 'admin') this.shell.setBadge('inbox', (await this.pickups.counts()).counts['ny'] ?? 0);
+      if (role === 'driver') this.shell.setBadge('market', (await this.pickups.list('market')).length);
+      if (role === 'giver') this.shell.setBadge('msgs', (await this.pickups.list('mine')).filter((p) => p.messageCount > 0).length);
+    } catch {
+      /* badges er pynt – feil vises ikke */
+    }
   }
 
   protected isActive(path: string) {

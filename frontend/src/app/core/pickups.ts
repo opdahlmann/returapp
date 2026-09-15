@@ -54,6 +54,10 @@ export interface Pickup {
   createdAt: string;
   messageCount: number;
   lastMessage: { fromUserId: string; text: string; at: string } | null;
+  suggestedDriverId?: string | null;
+  suggestedDriverName?: string | null;
+  suggestedCoversArea?: boolean;
+  suggestedLoad?: number;
 }
 
 export interface CreatePickup {
@@ -137,6 +141,18 @@ export class PickupApi {
 
   create(body: CreatePickup) {
     return firstValueFrom(this.http.post<Pickup>('/api/pickups', body));
+  }
+
+  assign(id: string, body: { driverId: string | null; day: string | null; slot: string | null }) {
+    return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/assign`, body));
+  }
+
+  market(id: string, open: boolean) {
+    return firstValueFrom(this.http.post<Pickup>(`/api/pickups/${id}/market`, { open }));
+  }
+
+  counts() {
+    return firstValueFrom(this.http.get<{ counts: Partial<Record<string, number>>; open: number }>('/api/pickups/counts'));
   }
 
   cancel(id: string) {

@@ -72,6 +72,16 @@ public class StoredFile
     public DateTime CreatedAt { get; set; }
 }
 
+public class RoutePlan
+{
+    public string Id { get; set; } = "";
+    public string DriverId { get; set; } = "";
+    public string Date { get; set; } = ""; // yyyy-MM-dd
+    public List<string> PickupIds { get; set; } = [];
+    public DateTime? SentAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
+
 public class Tip
 {
     public string Id { get; set; } = "";

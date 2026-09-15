@@ -67,11 +67,13 @@ export function dayChips(now = new Date()): { v: string; label: string }[] {
   });
 }
 
-/** "+4791234567" → "912 34 567" (norske nummer), ellers uendret */
+/** "+4791234567" → "912 34 567" (mobil), "+4738152000" → "38 15 20 00" (fasttelefon), ellers uendret */
 export function phone(e164: string | null | undefined): string {
   if (!e164) return '';
-  const m = /^\+47(\d{3})(\d{2})(\d{3})$/.exec(e164);
-  return m ? `${m[1]} ${m[2]} ${m[3]}` : e164;
+  const m = /^\+47(\d{8})$/.exec(e164);
+  if (!m) return e164;
+  const d = m[1];
+  return /^[49]/.test(d) ? `${d.slice(0, 3)} ${d.slice(3, 5)} ${d.slice(5)}` : `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 6)} ${d.slice(6)}`;
 }
 
 export function initials(name: string | null | undefined): string {

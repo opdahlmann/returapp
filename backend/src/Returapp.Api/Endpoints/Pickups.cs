@@ -10,7 +10,11 @@ public static class PickupEndpoints
     public record CreateBody(string? CategoryId, string? Desc, double Qty, string? Unit, string? Cond, string? Dims, string? Address, string? Postnr,
         string? Day, string? Slot, bool Unattended, string? Contact, string? Phone, List<string>? PhotoIds);
 
+    public record AssignBody(string? DriverId, string? Day, string? Slot);
+    public record MarketBody(bool Open);
+
     public static readonly string[] Active = [PickupStatus.Ny, PickupStatus.Tildelt, PickupStatus.Planlagt, PickupStatus.Underveis];
+    static readonly string[] Assignable = [PickupStatus.Ny, PickupStatus.Tildelt, PickupStatus.Planlagt];
 
     /// Superbruker alt; giver egne; gjest egne (gid); admin/sjåfør ordre i eget firma. Ellers 404 (eksistens skjules).
     public static bool CanRead(Caller c, Pickup p) =>
@@ -111,13 +115,84 @@ public static class PickupEndpoints
                     return AuthEndpoints.Err(400, "Ukjent scope");
             }
             var list = await db.Pickups.Find(q).SortByDescending(p => p.CreatedAt).Limit(500).ToListAsync();
-            return Results.Ok(await Dtos(db, list));
+            return Results.Ok(await Dtos(db, list, suggest: scope == "company"));
+        });
+
+        // Antall per status i eget firma (filterchips og badge i innboksen). Én $group.
+        g.MapGet("/counts", async (HttpContext ctx, Db db) =>
+        {
+            var c = ctx.User.Caller();
+            if (!c.Has("admin") || c.CompanyId == null) return AuthEndpoints.Err(403, "Kun for hentefirma");
+            var groups = await db.Pickups.Aggregate().Match(p => p.CompanyId == c.CompanyId).Group(p => p.Status, g => new { Status = g.Key, Count = g.Count() }).ToListAsync();
+            var open = await db.Pickups.CountDocumentsAsync(p => p.CompanyId == c.CompanyId && p.Open && p.Status == PickupStatus.Ny);
+            return Results.Ok(new { counts = groups.ToDictionary(x => x.Status, x => x.Count), open });
         });
 
         g.MapGet("/{id}", async (string id, HttpContext ctx, Db db) =>
         {
+            var c = ctx.User.Caller();
             var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
-            return p == null || !CanRead(ctx.User.Caller(), p) ? AuthEndpoints.Err(404, "Fant ikke hentingen") : Results.Ok((await Dtos(db, [p]))[0]);
+            return p == null || !CanRead(c, p) ? AuthEndpoints.Err(404, "Fant ikke hentingen") : Results.Ok((await Dtos(db, [p], suggest: c.Has("admin") || c.Has("super")))[0]);
+        });
+
+        // Admin/superbruker tildeler sjåfør (+ dag og tidsvindu = planlagt, ellers tildelt). Sjåfør tar oppdrag fra børsen (første vinner).
+        g.MapPost("/{id}/assign", async (string id, AssignBody b, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var c = ctx.User.Caller();
+            var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (p == null || !CanRead(c, p)) return AuthEndpoints.Err(404, "Fant ikke hentingen");
+            if (p.CompanyId == null) return AuthEndpoints.Err(409, "Ordren har ikke hentefirma ennå");
+            if (!Assignable.Contains(p.Status)) return AuthEndpoints.Err(409, "Ordren kan ikke tildeles nå");
+            if (b.Day != null && !DateOnly.TryParseExact(b.Day, "yyyy-MM-dd", out _)) return AuthEndpoints.Err(400, "Ugyldig dag");
+            if (b.Slot != null && !Seeder.Slots.Contains(b.Slot)) return AuthEndpoints.Err(400, "Ugyldig tidsvindu");
+            var planned = b.Day != null && b.Slot != null;
+            var manager = c.Has("super") || (c.Has("admin") && c.CompanyId == p.CompanyId);
+            var fromMarket = !manager;
+            string? driverId;
+            if (manager) driverId = b.DriverId;
+            else if (c.Has("driver") && c.CompanyId == p.CompanyId)
+            {
+                if (b.DriverId != null && b.DriverId != c.UserId) return AuthEndpoints.Err(403, "Du kan bare ta oppdrag selv");
+                if (!p.Open || p.Status != PickupStatus.Ny) return AuthEndpoints.Err(409, "Oppdraget er ikke på børsen");
+                if (!planned) return AuthEndpoints.Err(400, "Velg dag og tidsvindu");
+                driverId = c.UserId;
+            }
+            else return AuthEndpoints.Err(403, "Ingen tilgang");
+            if (driverId == null) return AuthEndpoints.Err(400, "Velg sjåfør");
+            var driver = await db.Users.Find(u => u.Id == driverId && u.Roles.Driver && u.CompanyId == p.CompanyId && u.Active).FirstOrDefaultAsync();
+            if (driver == null) return AuthEndpoints.Err(400, "Sjåføren tilhører ikke firmaet");
+
+            var status = planned ? PickupStatus.Planlagt : PickupStatus.Tildelt;
+            var now = DateTime.UtcNow;
+            var filter = Builders<Pickup>.Filter.Where(x => x.Id == id && Assignable.Contains(x.Status));
+            if (fromMarket) filter &= Builders<Pickup>.Filter.Where(x => x.Open && x.Status == PickupStatus.Ny);
+            var updated = await db.Pickups.FindOneAndUpdateAsync(filter,
+                Builders<Pickup>.Update.Set(x => x.DriverId, driverId).Set(x => x.Status, status).Set(x => x.Day, planned ? b.Day : null).Set(x => x.Slot, planned ? b.Slot : null)
+                    .Set(x => x.Open, false).Set(x => x.UpdatedAt, now).Push(x => x.StatusLog, new StatusLogEntry(status, now, c.UserId)),
+                new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (updated == null) return AuthEndpoints.Err(409, fromMarket ? "Noen andre tok oppdraget" : "Ordren ble endret – prøv igjen");
+
+            var when = planned ? $"{Fmt.Day(b.Day)} {b.Slot}" : "tid ikke avtalt";
+            if (driverId != c.UserId)
+                await notify.User(driverId, "pickup.assigned", $"Nytt oppdrag {id}", $"{updated.Title} · {updated.Postnr} {updated.Kommune} · {when}", id, planned ? Channels.Sms : Channels.InApp);
+            var giverText = planned ? $"{id} er planlagt {when} · {driver.Name}" : $"{id} er tildelt {driver.Name}. Dere får beskjed når tidspunkt er avtalt.";
+            if (updated.GiverUserId != null) await notify.User(updated.GiverUserId, planned ? "pickup.planned" : "pickup.assigned", planned ? "Hentingen er planlagt" : "Sjåfør tildelt", giverText, id, planned ? Channels.Sms : Channels.InApp);
+            else if (planned && updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, giverText);
+            return Results.Ok((await Dtos(db, [updated], suggest: true))[0]);
+        });
+
+        g.MapPost("/{id}/market", async (string id, MarketBody b, HttpContext ctx, Db db, Notifier notify) =>
+        {
+            var c = ctx.User.Caller();
+            var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (p == null || !c.Has("admin") || c.CompanyId != p.CompanyId) return AuthEndpoints.Err(404, "Fant ikke hentingen");
+            var updated = await db.Pickups.FindOneAndUpdateAsync(x => x.Id == id && x.Status == PickupStatus.Ny,
+                Builders<Pickup>.Update.Set(x => x.Open, b.Open).Set(x => x.UpdatedAt, DateTime.UtcNow), new FindOneAndUpdateOptions<Pickup> { ReturnDocument = ReturnDocument.After });
+            if (updated == null) return AuthEndpoints.Err(409, "Bare nye ordre kan legges på børsen");
+            if (b.Open)
+                foreach (var d in await db.Users.Find(u => u.CompanyId == p.CompanyId && u.Roles.Driver && u.Active).Project(u => u.Id).ToListAsync())
+                    await notify.User(d, "market.open", "Nytt oppdrag på børsen", $"{p.Title} · {p.Postnr} {p.Kommune}", id);
+            return Results.Ok((await Dtos(db, [updated], suggest: true))[0]);
         });
 
         g.MapPost("/{id}/cancel", async (string id, HttpContext ctx, Db db, Notifier notify) =>
@@ -156,18 +231,27 @@ public static class PickupEndpoints
     }
 
     /// Ordre + oppslag frontend trenger (kategori, firma, sjåfør, meldinger). Statusetikett/farger beregnes i frontend.
-    public static async Task<List<object>> Dtos(Db db, List<Pickup> list)
+    public static async Task<List<object>> Dtos(Db db, List<Pickup> list, bool suggest = false)
     {
         var cats = (await db.Categories.Find(_ => true).ToListAsync()).ToDictionary(c => c.Id);
         var companyIds = list.Select(p => p.CompanyId).OfType<string>().Distinct().ToList();
         var companies = (await db.Companies.Find(c => companyIds.Contains(c.Id)).ToListAsync()).ToDictionary(c => c.Id);
         var driverIds = list.Select(p => p.DriverId).OfType<string>().Distinct().ToList();
         var drivers = (await db.Users.Find(u => driverIds.Contains(u.Id)).ToListAsync()).ToDictionary(u => u.Id);
+        // Sjåførforslag: sjåfør i firmaet med kommunen i områdene sine, ellers den med færrest aktive oppdrag.
+        var companyDrivers = suggest ? await db.Users.Find(u => companyIds.Contains(u.CompanyId!) && u.Roles.Driver && u.Active).SortBy(u => u.Name).ToListAsync() : [];
+        var load = suggest
+            ? (await db.Pickups.Aggregate().Match(x => x.DriverId != null && (x.Status == PickupStatus.Tildelt || x.Status == PickupStatus.Planlagt || x.Status == PickupStatus.Underveis))
+                .Group(x => x.DriverId, g => new { Id = g.Key, Count = g.Count() }).ToListAsync()).ToDictionary(x => x.Id!, x => x.Count)
+            : [];
         return list.Select(p =>
         {
             var cat = cats.GetValueOrDefault(p.CategoryId);
             var company = p.CompanyId == null ? null : companies.GetValueOrDefault(p.CompanyId);
             var driver = p.DriverId == null ? null : drivers.GetValueOrDefault(p.DriverId);
+            var candidates = companyDrivers.Where(d => d.CompanyId == p.CompanyId).ToList();
+            var byArea = candidates.FirstOrDefault(d => d.Areas?.Contains(p.Kommune) == true);
+            var suggested = byArea ?? candidates.OrderBy(d => load.GetValueOrDefault(d.Id)).FirstOrDefault();
             return (object)new
             {
                 p.Id, p.CategoryId, categoryName = cat?.Name ?? "Annet", categoryIcon = cat?.Icon ?? "annet", p.Title, p.Desc,
@@ -177,6 +261,8 @@ public static class PickupEndpoints
                 p.DriverId, driverName = driver?.Name, driverPhone = driver?.Phone,
                 p.Photos, p.PickedPhotos, p.EstKg, p.PickedAt, p.PickedQty, p.PickedNote, p.Deviation, p.CancelledAt, p.StatusLog, p.CreatedAt,
                 messageCount = p.Messages.Count, lastMessage = p.Messages.LastOrDefault(),
+                suggestedDriverId = suggested?.Id, suggestedDriverName = suggested?.Name, suggestedCoversArea = byArea != null,
+                suggestedLoad = suggested == null ? 0 : load.GetValueOrDefault(suggested.Id),
             };
         }).ToList();
     }

@@ -34,6 +34,7 @@ describe('format', () => {
 
   it('telefon og initialer', () => {
     expect(phone('+4791234567')).toBe('912 34 567');
+    expect(phone('+4738152000')).toBe('38 15 20 00');
     expect(initials('Demo Superbruker')).toBe('DS');
   });
 });

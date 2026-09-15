@@ -39,6 +39,7 @@ public class Db
     public IMongoCollection<CoverageAlert> CoverageAlerts => Database.GetCollection<CoverageAlert>("coverageAlerts");
     public IMongoCollection<StoredFile> Files => Database.GetCollection<StoredFile>("files");
     public IMongoCollection<Tip> Tips => Database.GetCollection<Tip>("tips");
+    public IMongoCollection<RoutePlan> Routes => Database.GetCollection<RoutePlan>("routes");
     IMongoCollection<BsonDocument> Raw(string name) => Database.GetCollection<BsonDocument>(name);
 
     public async Task Ping() => await Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1));

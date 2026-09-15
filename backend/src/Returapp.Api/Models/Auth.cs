@@ -21,6 +21,8 @@ public class Invite
     public string? Email { get; set; }
     public Roles Roles { get; set; } = new();
     public string? CompanyId { get; set; }
+    public string? Vehicle { get; set; }
+    public List<string>? Areas { get; set; }
     public string? InvitedByUserId { get; set; }
     public DateTime Expires { get; set; }
     public DateTime? UsedAt { get; set; }
