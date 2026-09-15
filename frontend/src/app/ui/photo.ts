@@ -7,7 +7,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, input, signal } fro
   host: { style: 'display:contents' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `@if (url()) {
-    <img [src]="url()" [alt]="alt()" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />
+    <img [src]="url()" [alt]="alt()" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit" />
   }`,
 })
 export class PhotoImg {

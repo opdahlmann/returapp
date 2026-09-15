@@ -131,6 +131,8 @@ export class AuthStore {
     const rt = this.session()?.refreshToken;
     if (rt) this.http.post('/api/auth/logout', { refreshToken: rt }).subscribe({ error: () => {} });
     this.set(null);
+    // API-svar cachet av service workeren (dataGroups) tilhører brukeren som logget ut.
+    globalThis.caches?.keys().then((keys) => keys.filter((k) => k.includes(':data:')).forEach((k) => caches.delete(k)));
   }
 
   private start(res: TokenResponse): string {

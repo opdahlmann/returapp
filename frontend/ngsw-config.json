@@ -26,5 +26,46 @@
         ]
       }
     }
+  ],
+  "dataGroups": [
+    {
+      "name": "api-postnr",
+      "urls": [
+        "/api/postnr/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 300,
+        "maxAge": "1d"
+      }
+    },
+    {
+      "name": "api-photos",
+      "urls": [
+        "/api/photos/**"
+      ],
+      "cacheConfig": {
+        "strategy": "performance",
+        "maxSize": 200,
+        "maxAge": "7d"
+      }
+    },
+    {
+      "name": "api-fresh",
+      "urls": [
+        "/api/categories",
+        "/api/pickups**",
+        "/api/me",
+        "/api/notifications",
+        "/api/companies/**",
+        "/api/routes**"
+      ],
+      "cacheConfig": {
+        "strategy": "freshness",
+        "maxSize": 100,
+        "maxAge": "1h",
+        "timeout": "3s"
+      }
+    }
   ]
 }

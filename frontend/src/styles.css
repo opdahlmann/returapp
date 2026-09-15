@@ -41,3 +41,8 @@ router-outlet{display:none}
   .print-area{position:fixed;left:0;top:0;width:100%;border:0!important}
   .app{max-width:none;height:auto;overflow:visible}
 }
+
+/* iOS zoomer inn ved fokus på felt under 16px. Designet bruker 15px; kun iOS får 16px (ingen zoom-blokkering). Dokumentert avvik. */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, select { font-size: 16px !important; }
+}
