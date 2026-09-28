@@ -1,0 +1,27 @@
+{
+  "name": "returapp-nettside",
+  "type": "module",
+  "version": "0.0.0",
+  "private": true,
+  "description": "returapp.no: statisk produktside for Returapp (Astro). Plan: docs/nettside-plan.md.",
+  "scripts": {
+    "predev": "node skript/kopier-inn.mjs",
+    "dev": "astro dev",
+    "prebuild": "node skript/kopier-inn.mjs",
+    "build": "astro check && astro build",
+    "preview": "astro preview",
+    "check": "astro check",
+    "skjermbilder": "npx --prefix ../frontend playwright test --config skript/skjermbilder.config.ts",
+    "sjekk": "npm run build && node skript/sjekk-dist.mjs && playwright test"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.5",
+    "sharp": "^0.35.5",
+    "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}
