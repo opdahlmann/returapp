@@ -1,0 +1,20 @@
+---
+import Knapp from '../components/Knapp.astro';
+import Seksjon from '../components/Seksjon.astro';
+import Base from '../layouts/Base.astro';
+---
+
+<Base tittel="Fant ikke siden" beskrivelse="Siden finnes ikke. Gå til forsiden eller prøv demoen." sti="/404" noindex>
+  <Seksjon>
+    <div class="prosa">
+      <h1>Fant ikke siden</h1>
+      <p class="ingress dempet">Adressen finnes ikke, eller siden er flyttet.</p>
+      <div class="knapper"><Knapp href="/">Til forsiden</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  .ingress { margin-top: 16px; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+</style>

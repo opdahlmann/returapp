@@ -1,21 +1,84 @@
 ---
-import { SITE_NAME, SITE_URL } from '../consts';
+import { ADDRESS_LOCALITY, APP_URL, COMPANY, CONTACT_EMAIL, KODETANK_URL, SITE_NAME, SITE_URL } from '../consts';
 
-// Fylles ut i N7 (OG, JSON-LD). Nå: tittel, beskrivelse og canonical.
+// Tittel, beskrivelse, canonical, OG/Twitter og JSON-LD (Organization på alle sider; WebSite, SoftwareApplication, FAQPage og
+// BreadcrumbList der siden ber om det). Samme mønster som kodetank.no og nabotavle.no.
 export interface SeoProps {
   tittel: string;
   beskrivelse: string;
   /** Sti uten skråstrek på slutten; '' for forsiden. */
   sti: string;
+  /** OG-bilde under public/og/, standard er sidens egen fil. */
+  bilde?: string;
+  noindex?: boolean;
+  faq?: { q: string; a: string }[];
+  brodsmuler?: [string, string][];
+  /** SoftwareApplication-skjema (forsiden og /funksjoner). */
+  app?: boolean;
 }
-const { tittel, beskrivelse, sti } = Astro.props as SeoProps;
+const { tittel, beskrivelse, sti, bilde, noindex = false, faq, brodsmuler, app = false } = Astro.props as SeoProps;
 const fullTittel = sti === '' ? tittel : `${tittel} | ${SITE_NAME}`;
+const url = `${SITE_URL}${sti}`;
+const ogBilde = `${SITE_URL}${bilde ?? `/og/${sti === '' ? 'forside' : sti.slice(1).replace(/\//g, '-')}.png`}`;
+
+const organisasjon = {
+  '@type': 'Organization',
+  '@id': `${KODETANK_URL}/#org`,
+  name: COMPANY,
+  legalName: COMPANY,
+  url: KODETANK_URL,
+  logo: `${SITE_URL}/icons/icon-512x512.png`,
+  email: CONTACT_EMAIL,
+  areaServed: 'NO',
+  address: { '@type': 'PostalAddress', addressLocality: ADDRESS_LOCALITY, addressCountry: 'NO' },
+  sameAs: [KODETANK_URL],
+};
+const skjema: object[] = [organisasjon];
+if (sti === '') skjema.push({ '@type': 'WebSite', name: SITE_NAME, url: SITE_URL, inLanguage: 'nb-NO', publisher: { '@id': organisasjon['@id'] } });
+if (app)
+  skjema.push({
+    '@type': 'SoftwareApplication',
+    name: SITE_NAME,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web (PWA)',
+    url: APP_URL,
+    inLanguage: 'nb-NO',
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: 0, priceCurrency: 'NOK' },
+    featureList: ['Meld henting i fem steg', 'Dekning per kommune', 'Oppdragsbørs', 'Ruteplan', 'Henting bekreftet med bilde', 'Kvittering med kg og CO₂-anslag', 'Eksport til CSV, Excel og PDF'],
+    publisher: { '@id': organisasjon['@id'] },
+  });
+if (faq?.length) skjema.push({ '@type': 'FAQPage', mainEntity: faq.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) });
+if (brodsmuler?.length)
+  skjema.push({
+    '@type': 'BreadcrumbList',
+    itemListElement: [['Returapp', ''], ...brodsmuler].map(([name, s], i) => ({ '@type': 'ListItem', position: i + 1, name, item: `${SITE_URL}${s}` })),
+  });
+const jsonLd = skjema.map((s) => JSON.stringify({ '@context': 'https://schema.org', ...s }).replace(/</g, '\\u003c'));
 ---
 
 <title>{fullTittel}</title>
 <meta name="description" content={beskrivelse} />
-<link rel="canonical" href={`${SITE_URL}${sti}`} />
+<link rel="canonical" href={url} />
+<meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#1B4D2B" />
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F1512" />
-<link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
 <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+<link rel="sitemap" href="/sitemap-index.xml" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content={SITE_NAME} />
+<meta property="og:locale" content="nb_NO" />
+<meta property="og:title" content={tittel} />
+<meta property="og:description" content={beskrivelse} />
+<meta property="og:url" content={url} />
+<meta property="og:image" content={ogBilde} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={`${SITE_NAME}: ${tittel}`} />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={tittel} />
+<meta name="twitter:description" content={beskrivelse} />
+<meta name="twitter:image" content={ogBilde} />
+{jsonLd.map((j) => <script type="application/ld+json" set:html={j} />)}

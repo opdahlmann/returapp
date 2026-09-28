@@ -1,0 +1,35 @@
+---
+import Knapp from '../components/Knapp.astro';
+import Seksjon from '../components/Seksjon.astro';
+import { CONTACT_EMAIL } from '../consts';
+import Base from '../layouts/Base.astro';
+
+const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Returapp: henvendelse')}`;
+---
+
+<Base tittel="Kontakt Returapp" beskrivelse="Skriv til kontakt@returapp.no. Fortell om du melder fra en byggeplass eller vil hente, og hvilke kommuner det gjelder." sti="/kontakt" brodsmuler={[['Kontakt', '/kontakt']]}>
+  <Seksjon>
+    <div class="prosa">
+      <h1>Kontakt</h1>
+      <p class="ingress dempet">Skriv til oss, så svarer vi på e-post.</p>
+      <p class="epost"><a href={mailto}>{CONTACT_EMAIL}</a></p>
+      <h2>Nyttig å ta med</h2>
+      <ul class="liste">
+        <li>Om dere melder fra en byggeplass eller vil hente som hentefirma.</li>
+        <li>Hvilke kommuner det gjelder.</li>
+        <li>Omtrent hvor ofte dere har noe som skal ut, eller hvor ofte dere kan hente.</li>
+      </ul>
+      <div class="knapper"><Knapp href={mailto}>Send e-post</Knapp></div>
+      <p class="dempet liten">Bruker du appen allerede? Der finnes «Hjelp og support» under Profil, som går rett til oss.</p>
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  .ingress { margin-top: 16px; }
+  .epost { margin-top: 20px; font-size: 24px; font-weight: 800; }
+  h2 { margin-top: 40px; margin-bottom: 16px; font-size: 24px; }
+  .liste { margin: 0; padding-left: 1.2em; display: grid; gap: 10px; }
+  .knapper { margin-top: 28px; }
+  .liten { margin-top: 28px; font-size: 15px; }
+</style>

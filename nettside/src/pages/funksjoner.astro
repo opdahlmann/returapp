@@ -1,0 +1,97 @@
+---
+import type { ImageMetadata } from 'astro';
+import Knapp from '../components/Knapp.astro';
+import Seksjon from '../components/Seksjon.astro';
+import Telefon from '../components/Telefon.astro';
+import { APP_URL } from '../consts';
+import { beskrivelse, h1, ingress, kategorier, roller, statuser, tittel } from '../innhold/funksjoner';
+import Base from '../layouts/Base.astro';
+
+const alle = import.meta.glob<{ default: ImageMetadata }>('../assets/skjermbilder/*/*.png', { eager: true });
+const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbilder/${tema}/${navn}.png`]!.default;
+const medBilde = roller.filter((r) => r.bilde);
+const utenBilde = roller.filter((r) => !r.bilde);
+---
+
+<Base tittel={tittel} beskrivelse={beskrivelse} sti="/funksjoner" app brodsmuler={[['Funksjoner', '/funksjoner']]}>
+  <Seksjon>
+    <div class="topp">
+      <h1>{h1}</h1>
+      <p class="ingress dempet">{ingress}</p>
+    </div>
+  </Seksjon>
+
+  {medBilde.map((r, i) => (
+    <Seksjon>
+      <div class:list={['rolle', { speil: i % 2 === 1 }]}>
+        <div>
+          <h2>{r.navn}</h2>
+          <ul class="liste">{r.punkter.map((p) => <li>{p}</li>)}</ul>
+        </div>
+        <Telefon lys={bilde('light', r.bilde!)} mork={bilde('dark', r.bilde!)} alt={r.alt!} bredde={300} />
+      </div>
+    </Seksjon>
+  ))}
+
+  <Seksjon>
+    <div class="to">
+      {utenBilde.map((r) => (
+        <div class="kort">
+          <h2>{r.navn}</h2>
+          <ul class="liste">{r.punkter.map((p) => <li>{p}</li>)}</ul>
+        </div>
+      ))}
+    </div>
+  </Seksjon>
+
+  <Seksjon>
+    <h2>Hva kan meldes</h2>
+    <p class="dempet prosa">Tolv kategorier. Superbrukeren kan legge til flere.</p>
+    <ul class="chips">{kategorier.map((k) => <li>{k}</li>)}</ul>
+  </Seksjon>
+
+  <Seksjon>
+    <h2>Statusene en henting går gjennom</h2>
+    <dl class="statuser">
+      {statuser.map(([navn, tekst]) => (
+        <div>
+          <dt>{navn}</dt>
+          <dd class="dempet">{tekst}</dd>
+        </div>
+      ))}
+    </dl>
+  </Seksjon>
+
+  <Seksjon mork stram>
+    <div class="cta">
+      <h2>Prøv den selv</h2>
+      <div class="knapper"><Knapp href={APP_URL}>Meld henting</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  .topp { max-width: 720px; }
+  .ingress { margin-top: 16px; }
+  h2 { margin-bottom: 20px; }
+  .liste { margin: 0; padding-left: 1.2em; display: grid; gap: 10px; }
+  .rolle { display: grid; gap: 32px; align-items: center; }
+  .rolle :global(.telefon) { justify-self: center; }
+  @media (min-width: 900px) {
+    .rolle { grid-template-columns: 1fr auto; gap: 64px; }
+    .speil { grid-template-columns: auto 1fr; }
+    .speil > div { order: 2; }
+  }
+  .to { display: grid; gap: 20px; }
+  .kort { padding: 28px; border-radius: var(--r-kort); background: var(--sf2); }
+  @media (min-width: 768px) { .to { grid-template-columns: 1fr 1fr; } }
+  .chips { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+  .chips li { height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--bd); background: var(--sf); font-weight: 600; }
+  .statuser { margin: 0; display: grid; gap: 16px; }
+  .statuser div { padding: 16px 0; border-top: 1px solid var(--bd); display: grid; gap: 4px; }
+  .statuser dt { font-weight: 800; font-size: 18px; }
+  .statuser dd { margin: 0; }
+  @media (min-width: 768px) { .statuser div { grid-template-columns: 200px 1fr; gap: 24px; } }
+  .cta { text-align: center; display: flex; flex-direction: column; align-items: center; }
+  .knapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
+</style>

@@ -1,0 +1,53 @@
+---
+import Seksjon from '../components/Seksjon.astro';
+import { CONTACT_EMAIL } from '../consts';
+import Base from '../layouts/Base.astro';
+
+const appen = [
+  ['Hva som lagres', 'Navn, telefon og e-post på brukere. Adresse og kontaktperson for hentestedet. Bilder av materialene, meldinger mellom giver og sjåfør, og statusloggen for hver henting.'],
+  ['Hvem som ser det', 'Giveren ser sine egne hentinger. Hentefirmaet som har ordren ser adresse, kontakt, bilder og meldinger. Superbrukeren ser alt for å drifte tjenesten.'],
+  ['Bilder', 'Bildene ligger i databasen, ikke på en disk eller hos en tredjepart, og kan bare hentes av dem som kan se ordren.'],
+  ['SMS, e-post og push', 'Innloggingskoder og status sendes på SMS via Twilio. Kvitteringer og lenker sendes på e-post. Push-varsler er valgfrie og slås av i profilen.'],
+  ['Uten konto', 'Melder du uten konto, lagres mobilnummeret og hentingen. Du får status på SMS og kan når som helst opprette konto.'],
+  ['Sletting', `Skriv til ${CONTACT_EMAIL} for innsyn eller sletting. Brukere kan deaktiveres, og hentinger kan avbrytes av giveren mens de er aktive.`],
+];
+---
+
+<Base tittel="Personvern i Returapp og på returapp.no" beskrivelse="Hva appen lagrer (kontaktinfo, adresser, bilder av materialer), hvem som ser det, og at nettsiden ikke bruker informasjonskapsler eller sporing." sti="/personvern" brodsmuler={[['Personvern', '/personvern']]}>
+  <Seksjon>
+    <div class="prosa">
+      <h1>Personvern</h1>
+      <p class="ingress dempet">Det appen lagrer, hvem som ser det, og hva denne nettsiden gjør.</p>
+    </div>
+  </Seksjon>
+  <Seksjon>
+    <div class="prosa">
+      <h2>Appen</h2>
+      <dl>
+        {appen.map(([dt, dd]) => (
+          <div>
+            <dt>{dt}</dt>
+            <dd class="dempet">{dd}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </Seksjon>
+  <Seksjon>
+    <div class="prosa">
+      <h2>Nettsiden</h2>
+      <p class="dempet">returapp.no bruker ingen informasjonskapsler og ingen sporing. Demoen lagrer ingenting. Webserveren logger IP-adresser og forespørsler som vanlig, i en periode, for drift og feilsøking.</p>
+      <p class="dempet">Ansvarlig er Kodetank AS. Spørsmål: <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p>
+      <p class="dempet">Sist endret 28. september 2026.</p>
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  h2 { margin-bottom: 20px; }
+  .ingress { margin-top: 16px; }
+  dl { margin: 0; display: grid; gap: 20px; }
+  dt { font-weight: 800; font-size: 18px; margin-bottom: 4px; }
+  dd { margin: 0; }
+  p + p { margin-top: 12px; }
+</style>

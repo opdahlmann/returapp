@@ -1,0 +1,21 @@
+---
+import { getImage } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+// Utsnitt av et skjermbilde (øverste del) i et kort, lys og mørk etter systemet. Til bento-cellene.
+interface Props { lys: ImageMetadata; mork: ImageMetadata; alt: string; hoyde?: number }
+const { lys, mork, alt, hoyde = 240 } = Astro.props;
+const bilde = (src: ImageMetadata) => getImage({ src, widths: [402, 804], format: 'webp' });
+const l = await bilde(lys);
+const m = await bilde(mork);
+---
+
+<picture class="utsnitt" style={`--hoyde:${hoyde}px`}>
+  <source media="(prefers-color-scheme: dark)" srcset={m.srcSet.attribute} sizes="402px" type="image/webp" />
+  <img src={l.src} srcset={l.srcSet.attribute} sizes="402px" width={402} height={874} alt={alt} loading="lazy" decoding="async" />
+</picture>
+
+<style>
+  .utsnitt { display: block; height: var(--hoyde); overflow: hidden; background: var(--bg); }
+  .utsnitt img { width: 100%; max-width: 402px; margin-inline: auto; height: auto; }
+</style>
