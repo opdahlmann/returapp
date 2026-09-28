@@ -179,8 +179,7 @@ public static class PickupEndpoints
             if (driverId != c.UserId)
                 await notify.User(driverId, "pickup.assigned", $"Nytt oppdrag {id}", $"{updated.Title} · {updated.Postnr} {updated.Kommune} · {when}", id, planned ? Channels.Sms : Channels.InApp);
             var giverText = planned ? $"{id} er planlagt {when} · {driver.Name}" : $"{id} er tildelt {driver.Name}. Dere får beskjed når tidspunkt er avtalt.";
-            if (updated.GiverUserId != null) await notify.User(updated.GiverUserId, planned ? "pickup.planned" : "pickup.assigned", planned ? "Hentingen er planlagt" : "Sjåfør tildelt", giverText, id, planned ? Channels.Sms : Channels.InApp);
-            else if (planned && updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, giverText);
+            await notify.Giver(updated, planned ? "pickup.planned" : "pickup.assigned", planned ? "Hentingen er planlagt" : "Sjåfør tildelt", giverText, planned ? Channels.Sms : Channels.InApp);
             return Results.Ok((await Dtos(db, [updated], suggest: true))[0]);
         });
 
@@ -194,8 +193,7 @@ public static class PickupEndpoints
             if (p == null) return await NotYours(db, c, id, "Hentingen kan ikke startes nå");
             var driver = await db.Users.Find(u => u.Id == c.UserId).Project(u => u.Name).FirstOrDefaultAsync();
             var text = $"{driver} er på vei for å hente {p.Title}.";
-            if (p.GiverUserId != null) await notify.User(p.GiverUserId, "pickup.started", "Sjåføren er på vei", text, id, Channels.Sms);
-            else if (p.GuestPhone != null) await notify.Sms(p.GuestPhone, text);
+            await notify.Giver(p, "pickup.started", "Sjåføren er på vei", text);
             return Results.Ok((await Dtos(db, [p]))[0]);
         });
 
@@ -221,9 +219,9 @@ public static class PickupEndpoints
             var link = $"{cfg["App:BaseUrl"]}/p/{id}/receipt";
             var body = $"{updated.Title} er hentet og bekreftet. {Fmt.Kg(kg)} holdt i bruk. Kvittering: {link}";
             if (updated.CompanyId != null) await notify.CompanyAdmins(updated.CompanyId, "pickup.done", $"Hentet {id}", body, id);
+            await notify.Giver(updated, "pickup.done", "Hentet og bekreftet", body);
             if (updated.GiverUserId != null)
             {
-                await notify.User(updated.GiverUserId, "pickup.done", "Hentet og bekreftet", body, id, Channels.Sms);
                 var giver = await db.Users.Find(u => u.Id == updated.GiverUserId && u.Active).FirstOrDefaultAsync();
                 if (giver is { Email: not null, Notif.Email: true })
                 {
@@ -235,7 +233,6 @@ public static class PickupEndpoints
                     catch { /* e-post er best-effort; in-app og SMS er allerede sendt */ }
                 }
             }
-            else if (updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, body);
             return Results.Ok((await Dtos(db, [updated]))[0]);
         });
 
@@ -254,8 +251,7 @@ public static class PickupEndpoints
             if (updated == null) return AuthEndpoints.Err(409, "Avvik kan bare meldes på aktive hentinger");
             var text = $"{updated.Title}: {b.Reason}{(string.IsNullOrWhiteSpace(b.Note) ? "" : " – " + b.Note!.Trim())}";
             if (updated.CompanyId != null) await notify.CompanyAdmins(updated.CompanyId, "pickup.deviation", $"Avvik på {id}", text, id);
-            if (updated.GiverUserId != null) await notify.User(updated.GiverUserId, "pickup.deviation", "Avvik på hentingen", text, id, Channels.Sms);
-            else if (updated.GuestPhone != null) await notify.Sms(updated.GuestPhone, $"Avvik på {id}: {text}");
+            await notify.Giver(updated, "pickup.deviation", "Avvik på hentingen", text, guestText: $"Avvik på {id}: {text}");
             return Results.Ok((await Dtos(db, [updated]))[0]);
         });
 

@@ -14,7 +14,7 @@ public class DriverTests(ApiFixture api) : IAsyncLifetime
 {
     readonly string run = ApiFixture.RunId + Random.Shared.Next(100, 999);
     Company company = null!;
-    User d1 = null!, d2 = null!, giver = null!;
+    User d1 = null!, d2 = null!, giver = null!, admin = null!;
     readonly List<string> pickups = [];
     int seq;
 
@@ -25,6 +25,7 @@ public class DriverTests(ApiFixture api) : IAsyncLifetime
         d1 = await NewUser("d1", new() { Driver = true }, company.Id);
         d2 = await NewUser("d2", new() { Driver = true }, company.Id);
         giver = await NewUser("giver", new() { Giver = true }, null);
+        admin = await NewUser("admin", new() { Admin = true }, company.Id);
         await api.Db.Users.UpdateOneAsync(u => u.Id == giver.Id, Builders<User>.Update.Set(u => u.Notif, new Notif { Email = true, Sms = true, Push = false }));
     }
 
@@ -47,12 +48,12 @@ public class DriverTests(ApiFixture api) : IAsyncLifetime
 
     async Task<HttpClient> As(User u) => api.Client((await api.Tokens(u.Email!, "passord123")).GetProperty("accessToken").GetString());
 
-    async Task<string> NewPickup(string status, string? driverId)
+    async Task<string> NewPickup(string status, string? driverId, string? guestPhone = null)
     {
         var id = $"R-D{run}-{++seq}";
         await api.Db.Pickups.InsertOneAsync(new Pickup
         {
-            Id = id, CategoryId = "vinduer", Title = "24 stk vinduer", Postnr = "4865", Kommune = "Åmli", Address = "Testveien 1", CompanyId = company.Id, GiverUserId = giver.Id,
+            Id = id, CategoryId = "vinduer", Title = "24 stk vinduer", Postnr = "4865", Kommune = "Åmli", Address = "Testveien 1", CompanyId = company.Id, GiverUserId = guestPhone == null ? giver.Id : null, GuestPhone = guestPhone,
             GiverOrg = "Test", Contact = "Test", Phone = "+4740000000", Qty = 24, Unit = "stk", Cond = "God", Status = status, DriverId = driverId, EstKg = 720,
             Day = Fmt.Today().ToString("yyyy-MM-dd"), Slot = "09–12", StatusLog = [new(PickupStatus.Ny, DateTime.UtcNow, null)], CreatedAt = DateTime.UtcNow,
         });
@@ -92,6 +93,29 @@ public class DriverTests(ApiFixture api) : IAsyncLifetime
         Assert.StartsWith($"Kvittering {id}", mail.Subject);
         Assert.Equal("application/pdf", mail.Attachments!.Single().ContentType);
         Assert.Contains($"/p/{id}/receipt", api.LastSms(giver.Phone!));
+    }
+
+    [Fact]
+    public async Task Guest_gets_sms_on_planned_start_complete_and_deviation()
+    {
+        var phone = ApiFixture.TestPhone();
+        var a = await As(admin);
+        var c = await As(d1);
+
+        var id = await NewPickup(PickupStatus.Ny, null, phone);
+        (await a.PostAsJsonAsync($"/api/pickups/{id}/assign", new { driverId = d1.Id })).EnsureSuccessStatusCode();
+        Assert.Null(api.LastSms(phone));
+        (await a.PostAsJsonAsync($"/api/pickups/{id}/assign", new { driverId = d1.Id, day = Fmt.Today().ToString("yyyy-MM-dd"), slot = "09–12" })).EnsureSuccessStatusCode();
+        Assert.Contains($"{id} er planlagt", api.LastSms(phone));
+
+        (await c.PostAsync($"/api/pickups/{id}/start", null)).EnsureSuccessStatusCode();
+        Assert.Contains("er på vei", api.LastSms(phone));
+        (await c.PostAsJsonAsync($"/api/pickups/{id}/complete", new { qty = 24, note = "", photoIds = new[] { await UploadPhoto(c) } })).EnsureSuccessStatusCode();
+        Assert.Contains($"/p/{id}/receipt", api.LastSms(phone));
+
+        var other = await NewPickup(PickupStatus.Planlagt, d1.Id, phone);
+        (await c.PostAsJsonAsync($"/api/pickups/{other}/deviation", new { reason = "Varen var ødelagt" })).EnsureSuccessStatusCode();
+        Assert.Equal($"Returapp: Avvik på {other}: 24 stk vinduer: Varen var ødelagt", api.LastSms(phone));
     }
 
     [Fact]

@@ -213,8 +213,7 @@ public class Coverage(Db db, Notifier notify)
             await db.Pickups.UpdateOneAsync(x => x.Id == p.Id && x.CompanyId == null, Builders<Pickup>.Update.Set(x => x.CompanyId, company.Id).Set(x => x.UpdatedAt, DateTime.UtcNow));
             await notify.CompanyAdmins(company.Id, "pickup.new", $"Ny henteordre {p.Id}", $"{p.Title} i {p.Postnr} {p.Kommune}", p.Id);
             var body = $"{p.Id} er sendt til {company.Name}, som tar kontakt om henting.";
-            if (p.GiverUserId != null) await notify.User(p.GiverUserId, "pickup.company", "Hentefirma funnet", body, p.Id, Channels.Sms);
-            else if (p.GuestPhone != null) await notify.Sms(p.GuestPhone, body);
+            await notify.Giver(p, "pickup.company", "Hentefirma funnet", body);
         }
     }
 }

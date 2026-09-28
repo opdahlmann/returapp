@@ -51,6 +51,11 @@ public class Notifier(Db db, ISmsSender sms, IMailSender mail, IPushSender push,
                 await db.Users.UpdateOneAsync(x => x.Id == u.Id, Builders<User>.Update.PullFilter(x => x.PushSubscriptions, s => s.Endpoint == sub.Endpoint));
     }
 
+    /// Giver med konto får varsel etter egne innstillinger; gjest får SMS når hendelsen er SMS-verdig.
+    public Task Giver(Pickup p, string type, string title, string text, Channels channels = Channels.Sms, string? guestText = null) =>
+        p.GiverUserId != null ? User(p.GiverUserId, type, title, text, p.Id, channels)
+        : p.GuestPhone != null && channels.HasFlag(Channels.Sms) ? Sms(p.GuestPhone, guestText ?? text) : Task.CompletedTask;
+
     /// Gjest (ingen konto) får alltid SMS.
     public Task Sms(string phone, string text) => Safe(() => sms.Send(phone, "Returapp: " + text));
 
