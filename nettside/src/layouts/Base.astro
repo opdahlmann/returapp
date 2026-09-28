@@ -23,16 +23,16 @@ const props = Astro.props;
         m.addEventListener('change', s);
       })();
     </script>
-    <link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin />
     <Seo {...props} />
   </head>
   <body>
     <a class="hopp" href="#innhold">Hopp til innholdet</a>
+    <div id="topp-vakt" aria-hidden="true"></div>
     <Nav />
     <main id="innhold"><slot /></main>
     <Footer />
     <script>
-      // Én observer: [data-reveal] får klassen er-synlig én gang når 20 % er i syne. Uten bevegelse (reduced motion) gjør CSS ingenting.
+      // Én observer for innslipp: [data-reveal] får er-synlig én gang når 15 % er i syne. Uten bevegelse gjør CSS bare en fade.
       const io = new IntersectionObserver(
         (entries) => {
           for (const e of entries) {
@@ -41,9 +41,17 @@ const props = Astro.props;
             io.unobserve(e.target);
           }
         },
-        { threshold: 0.2 },
+        { threshold: 0.15 },
       );
       document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+      // Rullekant: når vakten øverst er ute av syne, får navigasjonen tyngre skygge (i stedet for en fast 1 px-strek).
+      const vakt = document.getElementById('topp-vakt');
+      const topp = document.querySelector('header.topp');
+      if (vakt && topp) new IntersectionObserver(([e]) => topp.toggleAttribute('data-rullet', !e!.isIntersecting)).observe(vakt);
     </script>
   </body>
 </html>
+
+<style>
+  #topp-vakt { position: absolute; top: 0; height: 1px; width: 1px; }
+</style>

@@ -107,3 +107,57 @@ test('404 gir egen side', async ({ page }) => {
   expect(res?.status()).toBe(404);
   await expect(page.locator('h1')).toHaveText('Fant ikke siden');
 });
+
+test('mobilarket åpner, kan dras igjen med musen og lukkes med Escape', async ({ browser }) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await page.goto('/');
+  await page.click('.meny');
+  const ark = page.locator('#ark');
+  await expect(ark).toHaveAttribute('open', '');
+  await expect(page.locator('.ark nav a').first()).toBeVisible();
+  // Kast nedover: fingeren slipper med fart, arket lukker.
+  const b = (await page.locator('.ark .hank').boundingBox())!;
+  await page.mouse.move(b.x + b.width / 2, b.y + 2);
+  await page.mouse.down();
+  for (let i = 1; i <= 6; i++) await page.mouse.move(b.x + b.width / 2, b.y + 2 + i * 40, { steps: 2 });
+  await page.mouse.up();
+  await expect(ark).not.toHaveAttribute('open', '');
+  await page.click('.meny');
+  await expect(ark).toHaveAttribute('open', '');
+  await page.keyboard.press('Escape');
+  await expect(ark).not.toHaveAttribute('open', '');
+  await page.close();
+});
+
+test('karusellen kan dras med musen og lander på et kort', async ({ page }) => {
+  await page.goto('/');
+  const spor = page.locator('.spor');
+  await spor.scrollIntoViewIfNeeded();
+  const b = (await spor.boundingBox())!;
+  await page.mouse.move(b.x + b.width - 60, b.y + 100);
+  await page.mouse.down();
+  for (let i = 1; i <= 8; i++) await page.mouse.move(b.x + b.width - 60 - i * 40, b.y + 100);
+  await page.mouse.up();
+  await expect(page.locator('.prikker button').nth(1)).toHaveAttribute('aria-selected', 'true');
+  // Fjæren lander nøyaktig på kortets start (eller på enden av banen om kortet ikke kan rulles helt inn).
+  await expect.poll(() => spor.evaluate((el) => Math.abs(el.scrollLeft - Math.min((el.children[1] as HTMLElement).offsetLeft - (el as HTMLElement).offsetLeft, el.scrollWidth - el.clientWidth)))).toBeLessThan(2);
+  await page.getByRole('button', { name: 'Forrige' }).click();
+  await expect(page.locator('.prikker button').first()).toHaveAttribute('aria-selected', 'true');
+});
+
+test('fanene på /funksjoner bytter panel med klikk og piltast', async ({ page }) => {
+  await page.goto('/funksjoner');
+  await page.getByRole('tab', { name: 'Sjåfør' }).click();
+  await expect(page.getByRole('tabpanel', { name: 'Sjåfør' })).toBeVisible();
+  await expect(page.getByRole('tabpanel', { name: 'Byggeplass' })).toBeHidden();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Superbruker' })).toBeFocused();
+  await expect(page.getByRole('tabpanel', { name: 'Superbruker' })).toBeVisible();
+});
+
+test('lys/mørk-glideren klipper det mørke bildet', async ({ page }) => {
+  await page.goto('/');
+  const inn = page.locator('.lysmork input');
+  await inn.fill('80');
+  await expect(page.locator('.lysmork .moerk')).toHaveCSS('clip-path', 'inset(0px 0px 0px 80%)');
+});

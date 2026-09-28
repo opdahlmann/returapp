@@ -12,13 +12,15 @@ const { bredde = 360 } = Astro.props;
 
 <div class="demo">
   <Telefon lys={hjemLys} mork={hjemMork} alt="Forhåndsvisning av demoen: giverens hjem-skjerm" bredde={bredde}>
+    <div class="slor"></div>
     <a class="start" href="/demo/app.html" target="_blank" rel="noopener">Prøv demoen</a>
   </Telefon>
 </div>
 
 <style>
   .demo { display: flex; justify-content: center; }
-  .start { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; height: 54px; padding: 0 26px; border-radius: var(--r-knapp); background: var(--pri); color: var(--pri-tx); font-weight: 800; font-size: 17px; text-decoration: none; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); transition: transform var(--varighet-kort) var(--kurve); }
-  .start:hover { transform: translate(-50%, -50%) scale(1.03); color: var(--pri-tx); }
-  .start:active { transform: translate(-50%, -50%) scale(.98); }
+  .slor { position: absolute; inset: 0; background: rgba(10, 20, 12, .18); }
+  .start { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; height: 54px; padding: 0 28px; border-radius: var(--r-pille); background: var(--pri); color: var(--pri-tx); font-weight: 600; font-size: 17px; text-decoration: none; box-shadow: 0 12px 32px rgba(0, 0, 0, .3); transition: transform var(--t-trykk) var(--ease-out); }
+  .start:active { transform: translate(-50%, -50%) scale(.97); }
+  @media (hover: hover) and (pointer: fine) { .start:hover { transform: translate(-50%, -50%) scale(1.03); color: var(--pri-tx); } }
 </style>

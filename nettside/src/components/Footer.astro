@@ -13,29 +13,33 @@ const sider = [
 ---
 
 <footer class="bunn">
-  <div class="wrap grid">
-    <div>
-      <Logo storrelse={24} />
-      <p class="dempet">{TAGLINE}.</p>
+  <div class="wrap">
+    <div class="rad">
+      <div>
+        <Logo storrelse={26} />
+        <p class="dempet liten">{TAGLINE}.</p>
+      </div>
+      <nav aria-label="Alle sider">
+        {sider.map(([href, tekst]) => <a href={href}>{tekst}</a>)}
+      </nav>
     </div>
-    <nav aria-label="Alle sider">
-      {sider.map(([href, tekst]) => <a href={href}>{tekst}</a>)}
-    </nav>
-    <div class="firma dempet">
+    <div class="firma dempet liten">
       <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
-      <p>{COMPANY} · org.nr {ORG_NR}</p>
-      <p><a href={KODETANK_URL} rel="noopener">kodetank.no</a></p>
+      <span>{COMPANY} · org.nr {ORG_NR}</span>
+      <a href={KODETANK_URL} rel="noopener">kodetank.no</a>
     </div>
   </div>
 </footer>
 
 <style>
-  .bunn { border-top: 1px solid var(--bd); padding-block: 48px; font-size: 15px; background: var(--sf); }
-  .grid { display: grid; gap: 28px; }
-  .bunn p { margin-top: 8px; }
-  nav { display: flex; flex-wrap: wrap; gap: 0 20px; }
-  nav a, .firma a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; color: var(--tx); text-decoration: none; font-weight: 600; }
-  nav a:hover, .firma a:hover { color: var(--pri); }
-  .firma p { margin-top: 0; }
-  @media (min-width: 768px) { .grid { grid-template-columns: 1.2fr 1fr 1fr; } }
+  .bunn { padding-block: 56px 40px; }
+  .rad { display: grid; gap: 24px; padding-bottom: 28px; border-bottom: 1px solid var(--bd); }
+  .bunn p { margin-top: 10px; }
+  nav { display: flex; flex-wrap: wrap; gap: 0 8px; }
+  nav a, .firma a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; padding: 0 10px; border-radius: var(--r-pille); color: var(--tx); text-decoration: none; font-weight: 500; font-size: 15px; transition: background-color var(--t-ui) ease; }
+  nav a:first-child { margin-left: -10px; }
+  @media (hover: hover) and (pointer: fine) { nav a:hover, .firma a:hover { background: var(--sf2); color: var(--tx); } }
+  .firma { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding-top: 16px; }
+  .firma a { color: var(--mu); padding: 0; }
+  @media (min-width: 768px) { .rad { grid-template-columns: 1fr auto; align-items: start; } }
 </style>

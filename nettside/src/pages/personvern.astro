@@ -1,4 +1,5 @@
 ---
+import Reveal from '../components/Reveal.astro';
 import Seksjon from '../components/Seksjon.astro';
 import { CONTACT_EMAIL } from '../consts';
 import Base from '../layouts/Base.astro';
@@ -14,21 +15,23 @@ const appen = [
 ---
 
 <Base tittel="Personvern i Returapp og på returapp.no" beskrivelse="Hva appen lagrer (kontaktinfo, adresser, bilder av materialer), hvem som ser det, og at nettsiden ikke bruker informasjonskapsler eller sporing." sti="/personvern" brodsmuler={[['Personvern', '/personvern']]}>
-  <Seksjon>
-    <div class="prosa">
+  <section class="topp-sek">
+    <div class="wrap prosa">
       <h1>Personvern</h1>
       <p class="ingress dempet">Det appen lagrer, hvem som ser det, og hva denne nettsiden gjør.</p>
     </div>
-  </Seksjon>
+  </section>
   <Seksjon>
     <div class="prosa">
       <h2>Appen</h2>
       <dl>
-        {appen.map(([dt, dd]) => (
-          <div>
-            <dt>{dt}</dt>
-            <dd class="dempet">{dd}</dd>
-          </div>
+        {appen.map(([dt, dd], i) => (
+          <Reveal i={i % 3} class="kort punkt">
+            <div class="kort-tekst">
+              <dt>{dt}</dt>
+              <dd class="dempet">{dd}</dd>
+            </div>
+          </Reveal>
         ))}
       </dl>
     </div>
@@ -44,10 +47,11 @@ const appen = [
 </Base>
 
 <style>
-  h2 { margin-bottom: 20px; }
-  .ingress { margin-top: 16px; }
-  dl { margin: 0; display: grid; gap: 20px; }
-  dt { font-weight: 800; font-size: 18px; margin-bottom: 4px; }
+  .topp-sek { padding-top: calc(76px + 6vh); padding-bottom: 56px; }
+  h2 { font-size: clamp(26px, 1.2vw + 20px, 36px); margin-bottom: 24px; }
+  .ingress { margin-top: 20px; }
+  dl { margin: 0; display: grid; gap: 14px; }
+  dt { font-weight: 600; font-size: 19px; letter-spacing: -.015em; margin-bottom: 6px; }
   dd { margin: 0; }
   p + p { margin-top: 12px; }
 </style>

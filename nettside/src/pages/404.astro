@@ -1,20 +1,22 @@
 ---
 import Knapp from '../components/Knapp.astro';
-import Seksjon from '../components/Seksjon.astro';
 import Base from '../layouts/Base.astro';
 ---
 
 <Base tittel="Fant ikke siden" beskrivelse="Adressen finnes ikke, eller siden er flyttet. Gå til forsiden for å melde en henting, eller prøv demoen i nettleseren." sti="/404" noindex>
-  <Seksjon>
-    <div class="prosa">
+  <section class="topp-sek">
+    <div class="wrap midt">
+      <p class="kode tall dempet">404</p>
       <h1>Fant ikke siden</h1>
       <p class="ingress dempet">Adressen finnes ikke, eller siden er flyttet.</p>
       <div class="knapper"><Knapp href="/">Til forsiden</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
     </div>
-  </Seksjon>
+  </section>
 </Base>
 
 <style>
-  .ingress { margin-top: 16px; }
-  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .topp-sek { padding-top: calc(76px + 10vh); padding-bottom: var(--sek); }
+  .kode { font-weight: 600; letter-spacing: .02em; margin-bottom: 12px; }
+  .ingress { margin-top: 20px; }
+  .knapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
 </style>

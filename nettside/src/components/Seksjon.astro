@@ -1,19 +1,28 @@
 ---
-// Én seksjon: bredde, avstand og valgfritt mørkt bånd i innloggingspaletten.
-interface Props { id?: string; mork?: boolean; class?: string; stram?: boolean; /** Full avstand over også når forrige seksjon er lys, og mer luft under overskriften. */ luft?: boolean }
-const { id, mork = false, class: klasse = '', stram = false, luft = false } = Astro.props;
+// Én seksjon: bredde og avstand. «hode» gir sentrert overskrift med ingress over innholdet.
+interface Props { id?: string; class?: string; stram?: boolean; h2?: string; ingress?: string; eyebrow?: string }
+const { id, class: klasse = '', stram = false, h2, ingress, eyebrow } = Astro.props;
 ---
 
-<section id={id} class:list={['sek', { mork, stram, luft }, klasse]}>
-  <div class="wrap"><slot /></div>
+<section id={id} class:list={['sek', { stram }, klasse]}>
+  <div class="wrap">
+    {h2 && (
+      <div class="hode midt" data-reveal>
+        {eyebrow && <span class="eyebrow">{eyebrow}</span>}
+        <h2>{h2}</h2>
+        {ingress && <p class="ingress dempet">{ingress}</p>}
+      </div>
+    )}
+    <slot />
+  </div>
 </section>
 
 <style>
   .sek { padding-block: var(--sek); }
-  .stram { padding-block: calc(var(--sek) * .6); }
-  .sek + .sek:not(.mork) { padding-top: 0; }
-  .sek + .sek.luft { padding-top: var(--sek); }
-  .luft :global(h2:first-child) { margin-bottom: 40px; }
-  .mork { background: var(--mork); color: var(--mork-tekst); }
-  .mork :global(.dempet) { color: var(--mork-dempet); }
+  .stram { padding-block: calc(var(--sek) * .5); }
+  .sek + .sek { padding-top: 0; }
+  .hode { max-width: 760px; margin: 0 auto 48px; }
+  .hode .ingress { margin-top: 16px; }
+  .eyebrow { display: inline-block; font-size: 15px; font-weight: 600; letter-spacing: .01em; color: var(--pri); margin-bottom: 14px; }
+  @media (min-width: 768px) { .hode { margin-bottom: 64px; } }
 </style>

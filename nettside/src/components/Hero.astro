@@ -1,11 +1,10 @@
 ---
 import type { ImageMetadata } from 'astro';
 import Knapp from './Knapp.astro';
-import Seksjon from './Seksjon.astro';
 import Telefon from './Telefon.astro';
 
-// Åpningen på alle hovedsider: mørkt bånd i innloggingspaletten, H1 til venstre, telefon til høyre.
-// På mobil vises bare øverste del av telefonen, så knappene ikke havner under folden.
+// Åpningen på alle hovedsider: sentrert H1 i displaystørrelse, ingress, to knapper, og telefonen under som materialiserer inn.
+// Med ekte peker vipper telefonen etter musen via to uavhengige fjærer (dekorativt, bare på markedssiden).
 interface Props {
   h1: string;
   ingress: string;
@@ -18,29 +17,63 @@ interface Props {
 const { h1, ingress, primar, sekundar = { tekst: 'Prøv demoen', href: '/demo' }, lys, mork, alt } = Astro.props;
 ---
 
-<Seksjon mork class="hero-sek">
-  <div class="hero">
-    <div>
+<section class="hero-sek">
+  <div class="wrap hero midt">
+    <div class="tekst">
       <h1>{h1}</h1>
       <p class="ingress dempet">{ingress}</p>
       <div class="knapper"><Knapp href={primar.href}>{primar.tekst}</Knapp><Knapp href={sekundar.href} variant="sekundar">{sekundar.tekst}</Knapp></div>
     </div>
-    <div class="hero-telefon"><Telefon lys={lys} mork={mork} alt={alt} eager /></div>
+    <div class="scene">
+      <div class="glod" aria-hidden="true"></div>
+      <div class="vipp" data-vipp><Telefon lys={lys} mork={mork} alt={alt} eager bredde={380} /></div>
+    </div>
   </div>
-</Seksjon>
+</section>
+
+<script>
+  import { Fjaer } from '../skript/fjaer';
+
+  // To fjærer (X og Y hver for seg, så de aldri kommer ut av takt). Målet er musens plass over scenen, ±7 grader.
+  const vipp = document.querySelector<HTMLElement>('[data-vipp]');
+  const scene = vipp?.parentElement;
+  if (vipp && scene && matchMedia('(hover: hover) and (pointer: fine)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    let rx = 0, ry = 0;
+    const tegn = () => { vipp.style.transform = `perspective(1400px) rotateX(${rx}deg) rotateY(${ry}deg)`; };
+    const fx = new Fjaer(0, { damping: 1, response: 0.5 }, (v) => { rx = v; tegn(); });
+    const fy = new Fjaer(0, { damping: 1, response: 0.5 }, (v) => { ry = v; tegn(); });
+    scene.addEventListener('pointermove', (e) => {
+      const r = scene.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5;
+      const py = (e.clientY - r.top) / r.height - 0.5;
+      fx.to(-py * 14);
+      fy.to(px * 14);
+    });
+    scene.addEventListener('pointerleave', () => { fx.to(0); fy.to(0); });
+  }
+</script>
 
 <style>
-  .hero-sek { padding-block: 56px 0; }
-  .hero { display: grid; gap: 40px; align-items: center; }
-  .ingress { margin-top: 20px; }
-  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-  .hero-telefon { max-height: 300px; overflow: hidden; justify-self: center; }
-  .hero-telefon :global(.telefon) { animation: inn var(--varighet-inn) var(--kurve) both; }
-  @keyframes inn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .hero-telefon :global(.telefon) { animation: none; } }
+  .hero-sek { padding-top: calc(76px + 6vh); overflow: hidden; }
+  .hero { display: grid; gap: 48px; justify-items: center; }
+  .tekst { max-width: 880px; }
+  .ingress { margin: 22px auto 0; }
+  .knapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
+  .scene { position: relative; width: min(380px, 78vw); padding-bottom: 8px; }
+  .glod { position: absolute; inset: 10% -30% -10%; border-radius: 50%; background: radial-gradient(closest-side, var(--tint), transparent); opacity: .9; filter: blur(30px); pointer-events: none; }
+  .vipp { position: relative; will-change: transform; }
+  @media (prefers-reduced-motion: no-preference) {
+    .tekst > * { animation: inn 900ms var(--ease-out) both; }
+    .tekst .ingress { animation-delay: 80ms; }
+    .tekst .knapper { animation-delay: 160ms; }
+    .vipp { animation: materialiser 1100ms var(--ease-out) 120ms both; }
+    .glod { animation: glod 1400ms var(--ease-out) 300ms both; }
+  }
+  @keyframes inn { from { opacity: 0; transform: translateY(18px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes materialiser { from { opacity: 0; transform: translateY(48px) scale(.94); filter: blur(16px); } to { opacity: 1; transform: none; filter: none; } }
+  @keyframes glod { from { opacity: 0; } to { opacity: .9; } }
   @media (min-width: 900px) {
-    .hero-sek { padding-block: 80px 0; }
-    .hero { grid-template-columns: 7fr 5fr; gap: 64px; }
-    .hero-telefon { max-height: 560px; justify-self: end; padding-top: 8px; }
+    .hero-sek { padding-top: calc(96px + 8vh); }
+    .hero { gap: 64px; }
   }
 </style>

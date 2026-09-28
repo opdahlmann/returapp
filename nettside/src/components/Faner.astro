@@ -1,0 +1,88 @@
+---
+import type { ImageMetadata } from 'astro';
+import Telefon from './Telefon.astro';
+
+// Faner med perfekt fargeovergang: fanelisten er duplisert, kopien er stylet som aktiv og klippes med clip-path til bare den valgte.
+// Panelene ligger i samme rutenettcelle, så høyden aldri hopper; bytte er en kryssfading med litt uskarphet i sømmen.
+interface Fane { navn: string; punkter: string[]; lys?: ImageMetadata; mork?: ImageMetadata; alt?: string }
+interface Props { faner: Fane[]; navn: string }
+const { faner, navn } = Astro.props;
+const id = navn.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+---
+
+<div class="faner" data-faner>
+  <div class="liste-omslag">
+    <div class="liste" role="tablist" aria-label={navn}>
+      {faner.map((f, i) => <button type="button" role="tab" id={`${id}-fane-${i}`} aria-selected={i === 0 ? 'true' : 'false'} aria-controls={`${id}-panel-${i}`} tabindex={i === 0 ? 0 : -1}>{f.navn}</button>)}
+    </div>
+    <div class="liste aktiv" aria-hidden="true">
+      {faner.map((f) => <span>{f.navn}</span>)}
+    </div>
+  </div>
+  <div class="paneler">
+    {faner.map((f, i) => (
+      <div class:list={['panel', { 'med-bilde': !!f.lys }]} role="tabpanel" id={`${id}-panel-${i}`} aria-labelledby={`${id}-fane-${i}`} data-aktiv={i === 0 ? '' : undefined} hidden={i !== 0}>
+        <div class="flis tonet">
+          <h3>{f.navn}</h3>
+          <ul class="liste-p">{f.punkter.map((p) => <li>{p}</li>)}</ul>
+        </div>
+        {f.lys && f.mork && <div class="tlf"><Telefon lys={f.lys} mork={f.mork} alt={f.alt ?? ''} bredde={300} /></div>}
+      </div>
+    ))}
+  </div>
+</div>
+
+<script>
+  for (const rot of document.querySelectorAll<HTMLElement>('[data-faner]')) {
+    const faner = [...rot.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+    const kopi = rot.querySelector<HTMLElement>('.liste.aktiv')!;
+    const paneler = [...rot.querySelectorAll<HTMLElement>('.panel')];
+    let aktiv = 0;
+    const klipp = () => {
+      const f = faner[aktiv]!;
+      const l = f.offsetLeft, r = kopi.offsetWidth - l - f.offsetWidth;
+      kopi.style.clipPath = `inset(0 ${r}px 0 ${l}px round 999px)`;
+    };
+    const velg = (i: number, fokus = false) => {
+      aktiv = i;
+      faner.forEach((f, j) => { f.setAttribute('aria-selected', String(i === j)); f.tabIndex = i === j ? 0 : -1; });
+      // hidden fjernes før fadingen, og settes igjen på det gamle panelet når det er borte (visibility i CSS gjør resten).
+      paneler.forEach((p, j) => { if (i === j) { p.hidden = false; requestAnimationFrame(() => p.setAttribute('data-aktiv', '')); } else p.removeAttribute('data-aktiv'); });
+      klipp();
+      if (fokus) faner[i]!.focus();
+    };
+    faner.forEach((f, i) => {
+      f.addEventListener('click', () => velg(i));
+      f.addEventListener('keydown', (e) => {
+        const n = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!n) return;
+        e.preventDefault();
+        velg((i + n + faner.length) % faner.length, true);
+      });
+    });
+    paneler.forEach((p) => p.addEventListener('transitionend', (e) => { if (e.propertyName === 'opacity' && !p.hasAttribute('data-aktiv')) p.hidden = true; }));
+    klipp();
+    new ResizeObserver(klipp).observe(kopi);
+  }
+</script>
+
+<style>
+  .liste-omslag { position: relative; width: fit-content; max-width: 100%; margin: 0 auto 40px; overflow-x: auto; scrollbar-width: none; border-radius: 999px; }
+  .liste-omslag::-webkit-scrollbar { display: none; }
+  .liste { display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--sf2); }
+  .liste > * { flex: none; height: 40px; padding: 0 18px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 15px; letter-spacing: -.005em; color: var(--tx); display: inline-flex; align-items: center; white-space: nowrap; transition: transform var(--t-trykk) var(--ease-out); }
+  .liste button:active { transform: scale(.96); }
+  .liste.aktiv { position: absolute; inset: 0; background: var(--tx); color: var(--bg); pointer-events: none; clip-path: inset(0 100% 0 0 round 999px); transition: clip-path 250ms var(--ease-in-out); }
+  .liste.aktiv span { color: var(--bg); }
+  .paneler { display: grid; }
+  .panel { grid-area: 1 / 1; display: grid; gap: 24px; align-items: center; opacity: 0; filter: blur(4px); visibility: hidden; transition: opacity var(--t-ui) ease, filter var(--t-ui) ease, visibility 0s var(--t-ui); }
+  .panel[data-aktiv] { opacity: 1; filter: none; visibility: visible; transition-delay: 0s; }
+  .panel[hidden] { display: grid; }
+  .panel .flis h3 { font-size: 28px; letter-spacing: -.025em; margin-bottom: 18px; }
+  .liste-p { margin: 0; padding-left: 1.2em; display: grid; gap: 12px; font-size: 17px; }
+  .tlf { display: flex; justify-content: center; }
+  @media (min-width: 900px) {
+    .panel.med-bilde { grid-template-columns: 1fr 340px; gap: 48px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .liste.aktiv, .panel { transition: none; } }
+</style>

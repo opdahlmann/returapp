@@ -8,29 +8,66 @@ const mailto = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Returapp: 
 ---
 
 <Base tittel="Kontakt Returapp" beskrivelse="Skriv til kontakt@returapp.no. Fortell om du melder fra en byggeplass eller vil hente, og hvilke kommuner det gjelder." sti="/kontakt" brodsmuler={[['Kontakt', '/kontakt']]}>
-  <Seksjon>
-    <div class="prosa">
+  <section class="topp-sek">
+    <div class="wrap prosa">
       <h1>Kontakt</h1>
       <p class="ingress dempet">Skriv til oss, så svarer vi på e-post.</p>
       <p class="epost"><a href={mailto}>{CONTACT_EMAIL}</a></p>
+      <div class="knapper"><Knapp href={mailto}>Send e-post</Knapp><button type="button" class="kopier" data-kopier={CONTACT_EMAIL}>Kopier adressen</button></div>
+    </div>
+  </section>
+  <Seksjon>
+    <div class="flis nyttig prosa">
       <h2>Nyttig å ta med</h2>
       <ul class="liste">
         <li>Om dere melder fra en byggeplass eller vil hente som hentefirma.</li>
         <li>Hvilke kommuner det gjelder.</li>
         <li>Omtrent hvor ofte dere har noe som skal ut, eller hvor ofte dere kan hente.</li>
       </ul>
-      <div class="knapper"><Knapp href={mailto}>Send e-post</Knapp></div>
       <p class="dempet liten">Bruker du appen allerede? Der finnes «Hjelp og support» under Profil, som går rett til oss.</p>
     </div>
   </Seksjon>
+  <div class="toasts" aria-live="polite"></div>
 </Base>
 
+<script>
+  // Toast etter Sonner-prinsippene: kommer inn nedenfra med @starting-style, går ut samme vei, overganger (ikke keyframes) så
+  // to raske trykk ikke starter fra null. Ny toast erstatter den forrige.
+  const rom = document.querySelector<HTMLElement>('.toasts')!;
+  let timer = 0;
+  const fjern = (t: HTMLElement) => { t.setAttribute('data-ut', ''); t.addEventListener('transitionend', () => t.remove(), { once: true }); };
+  document.querySelector<HTMLButtonElement>('[data-kopier]')?.addEventListener('click', async (e) => {
+    const k = e.currentTarget as HTMLButtonElement;
+    let tekst = 'Kopiert';
+    try { await navigator.clipboard.writeText(k.dataset.kopier!); } catch { tekst = 'Kunne ikke kopiere'; }
+    rom.querySelectorAll<HTMLElement>('.toast').forEach(fjern);
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = tekst;
+    rom.append(t);
+    clearTimeout(timer);
+    timer = window.setTimeout(() => fjern(t), 2400);
+  });
+</script>
+
 <style>
-  .ingress { margin-top: 16px; }
-  .epost { margin-top: 12px; font-size: 24px; font-weight: 800; }
-  .epost a { display: inline-block; padding: 8px 0; overflow-wrap: anywhere; }
-  h2 { margin-top: 40px; margin-bottom: 16px; font-size: 24px; }
-  .liste { margin: 0; padding-left: 1.2em; display: grid; gap: 10px; }
-  .knapper { margin-top: 28px; }
-  .liten { margin-top: 28px; font-size: 15px; }
+  .topp-sek { padding-top: calc(76px + 6vh); }
+  .ingress { margin-top: 20px; }
+  .epost { margin-top: 28px; font-size: clamp(24px, 2vw + 14px, 40px); font-weight: 700; letter-spacing: -.03em; }
+  .epost a { display: inline-block; padding: 8px 0; overflow-wrap: anywhere; text-decoration: none; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 56px; }
+  .kopier { height: 50px; padding: 0 24px; border-radius: var(--r-pille); border: 1px solid var(--bd); background: var(--sf); font-weight: 600; font-size: 16px; letter-spacing: -.01em; transition: transform var(--t-trykk) var(--ease-out), border-color var(--t-ui) ease; }
+  .kopier:active { transform: scale(.97); }
+  @media (hover: hover) and (pointer: fine) { .kopier:hover { border-color: var(--mu); } }
+  .nyttig h2 { font-size: clamp(26px, 1.2vw + 20px, 36px); margin-bottom: 20px; }
+  .nyttig .liste { gap: 12px; font-size: 18px; }
+  .nyttig .liten { margin-top: 28px; }
+  .toasts { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 60; display: grid; pointer-events: none; }
+  .toasts :global(.toast) {
+    grid-area: 1 / 1; padding: 12px 20px; border-radius: var(--r-pille); background: var(--tx); color: var(--bg); font-weight: 600; font-size: 15px; box-shadow: var(--sh-hoy);
+    opacity: 1; transform: translateY(0); transition: opacity 400ms ease, transform 400ms ease;
+  }
+  .toasts :global(.toast[data-ut]) { opacity: 0; transform: translateY(100%); }
+  @starting-style { .toasts :global(.toast) { opacity: 0; transform: translateY(100%); } }
+  @media (prefers-reduced-motion: reduce) { .toasts :global(.toast) { transform: none !important; transition: opacity 200ms ease; } }
 </style>

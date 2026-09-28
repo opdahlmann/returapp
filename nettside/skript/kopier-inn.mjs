@@ -1,7 +1,6 @@
 // Kopierer det nettsiden låner fra resten av repoet inn i public/ (ignorert av git). Kjøres av predev og prebuild.
 // - Demoen: docs/design/Returapp-standalone.html (prototypen, uendret) → public/demo/app.html (nginx serverer den som /demo/app).
 //   Bare <title>, lang og robots byttes i kopien.
-// - Fontene: frontend/public/fonts/*.woff2 → public/fonts/ (samme filer som appen, ingen Google Fonts)
 // - Ikonene: frontend/public/icons/*.png → public/icons/
 import { cpSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -11,10 +10,7 @@ const her = dirname(fileURLToPath(import.meta.url));
 const rot = join(her, '../..');
 const pub = join(her, '../public');
 
-const par = [
-  ['frontend/public/fonts', 'fonts'],
-  ['frontend/public/icons', 'icons'],
-];
+const par = [['frontend/public/icons', 'icons']];
 for (const [fra, til] of par) {
   const kilde = join(rot, fra);
   if (!existsSync(kilde)) throw new Error(`mangler ${kilde}`);

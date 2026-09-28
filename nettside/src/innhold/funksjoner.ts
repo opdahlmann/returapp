@@ -36,6 +36,8 @@ export const roller = [
   },
   {
     navn: 'Sjåfør',
+    bilde: 'driver-today',
+    alt: 'Sjåførens dag: stopp igjen, kilometer og børsen',
     punkter: [
       'I dag: stopp igjen, anslått kilometer, og hva som ligger på børsen.',
       'Oppdragsbørs: ta oppdrag selv, med dag og tidsvindu.',

@@ -3,6 +3,7 @@ import { APP_URL } from '../consts';
 import Knapp from './Knapp.astro';
 import Logo from './Logo.astro';
 
+// Flytende pille i glass øverst, innholdet ruller under. På mobil åpner «Meny» et ark nederst som kan dras igjen (Ark-skriptet).
 const lenker = [
   ['/funksjoner', 'Funksjoner'],
   ['/for/byggeplass', 'For byggeplass'],
@@ -13,40 +14,127 @@ const her = Astro.url.pathname.replace(/\.html$/, '');
 ---
 
 <header class="topp">
-  <div class="wrap rad">
+  <div class="pille glass">
     <a href="/" class="logo" aria-label="Returapp, til forsiden"><Logo /></a>
     <nav aria-label="Hovedmeny" class="desktop">
       {lenker.map(([href, tekst]) => <a href={href} aria-current={her === href ? 'page' : undefined}>{tekst}</a>)}
     </nav>
     <div class="cta desktop"><Knapp href={APP_URL} liten>Meld henting</Knapp></div>
-    <details class="mobil">
-      <summary aria-label="Meny"><span></span><span></span><span></span></summary>
-      <nav aria-label="Hovedmeny">
-        {lenker.map(([href, tekst]) => <a href={href} aria-current={her === href ? 'page' : undefined}>{tekst}</a>)}
-        <Knapp href={APP_URL}>Meld henting</Knapp>
-      </nav>
-    </details>
+    <button class="meny" type="button" aria-label="Meny" aria-haspopup="dialog" aria-controls="ark"><span></span><span></span></button>
   </div>
 </header>
 
+<dialog id="ark" class="ark" aria-label="Meny">
+  <div class="ark-flate">
+    <div class="hank" aria-hidden="true"></div>
+    <nav aria-label="Hovedmeny">
+      {lenker.map(([href, tekst]) => <a href={href} aria-current={her === href ? 'page' : undefined}>{tekst}</a>)}
+    </nav>
+    <Knapp href={APP_URL}>Meld henting</Knapp>
+  </div>
+</dialog>
+
+<script>
+  import { Fartsmaaler, Fjaer, projiser, reduserBevegelse, strikk } from '../skript/fjaer';
+
+  // Arket: 1:1 under fingeren, gummistrikk oppover, kastet projiseres, fjæren arver fingerens fart. Kan gripes midt i lukkingen.
+  const ark = document.getElementById('ark') as HTMLDialogElement;
+  const flate = ark.querySelector<HTMLElement>('.ark-flate')!;
+  const knapp = document.querySelector<HTMLButtonElement>('.meny')!;
+  let hoyde = 0;
+  const tegn = (y: number) => { flate.style.transform = `translateY(${y}px)`; ark.style.setProperty('--dim', String(Math.max(0, 1 - y / hoyde))); };
+  const fjaer = new Fjaer(0, { damping: 0.8, response: 0.3 }, tegn, () => { if (fjaer.target >= hoyde) { ark.close(); knapp.setAttribute('aria-expanded', 'false'); } });
+
+  const apne = () => {
+    if (ark.open) return;
+    ark.showModal();
+    knapp.setAttribute('aria-expanded', 'true');
+    hoyde = flate.offsetHeight;
+    if (reduserBevegelse()) { fjaer.set(0); return; }
+    fjaer.set(hoyde);
+    fjaer.to(0, 0);
+  };
+  const lukk = (fart = 0) => {
+    if (reduserBevegelse()) { fjaer.set(hoyde); ark.close(); knapp.setAttribute('aria-expanded', 'false'); return; }
+    fjaer.to(hoyde, fart);
+  };
+  knapp.addEventListener('click', apne);
+  ark.addEventListener('cancel', (e) => { e.preventDefault(); lukk(); });
+  ark.addEventListener('click', (e) => { if (e.target === ark) lukk(); });
+  ark.addEventListener('close', () => tegn(hoyde));
+
+  // Drag: peker fanges så bevegelsen fortsetter utenfor arket. Terskel 8 px før det regnes som et drag, ellers er det et trykk.
+  let start = 0, gripeY = 0, drar = false;
+  const fart = new Fartsmaaler();
+  flate.addEventListener('pointerdown', (e) => {
+    if (drar || e.button !== 0) return;
+    drar = true;
+    fjaer.stop();
+    gripeY = fjaer.value;
+    start = e.clientY;
+    fart.reset(); fart.add(e.clientY);
+    flate.setPointerCapture(e.pointerId);
+  });
+  flate.addEventListener('pointermove', (e) => {
+    if (!drar) return;
+    fart.add(e.clientY);
+    const d = e.clientY - start + gripeY;
+    if (Math.abs(e.clientY - start) > 8) flate.setAttribute('data-drar', '');
+    fjaer.set(d >= 0 ? d : strikk(d, hoyde));
+  });
+  const slipp = (e: PointerEvent) => {
+    if (!drar) return;
+    drar = false;
+    flate.removeAttribute('data-drar');
+    const v = fart.velocity;
+    const mål = fjaer.value + projiser(v);
+    if (mål > hoyde * 0.4 || v > 900) lukk(v); else fjaer.to(0, v);
+    if (flate.hasPointerCapture(e.pointerId)) flate.releasePointerCapture(e.pointerId);
+  };
+  flate.addEventListener('pointerup', slipp);
+  flate.addEventListener('pointercancel', slipp);
+  // Et drag skal ikke også være et klikk på en lenke.
+  flate.addEventListener('click', (e) => { if (Math.abs(fjaer.value) > 8 || fjaer.running) e.preventDefault(); }, true);
+</script>
+
 <style>
-  .topp { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); box-shadow: 0 1px 0 var(--bd); }
-  .rad { display: flex; align-items: center; gap: 28px; height: 64px; }
-  .logo { display: flex; align-items: center; min-height: 44px; color: var(--tx); text-decoration: none; }
+  .topp { position: fixed; inset: 12px 0 auto; z-index: 50; display: flex; justify-content: center; padding-inline: var(--gutter); pointer-events: none; }
+  .pille {
+    pointer-events: auto; display: flex; align-items: center; gap: 4px; height: 52px; padding: 0 6px 0 18px; border-radius: var(--r-pille);
+    box-shadow: inset 0 1px 0 var(--glass-kant), var(--sh-lav);
+    transition: box-shadow 300ms ease, background-color 300ms ease;
+  }
+  .topp[data-rullet] .pille { box-shadow: inset 0 1px 0 var(--glass-kant), var(--sh-hoy); background: var(--glass-tung); }
+  .logo { display: flex; align-items: center; min-height: 44px; margin-right: 8px; color: var(--tx); text-decoration: none; }
   .desktop { display: none; }
-  nav.desktop { display: none; gap: 24px; margin-left: 12px; }
-  nav a { color: var(--tx); text-decoration: none; font-weight: 600; padding: 6px 0; border-bottom: 2px solid transparent; transition: border-color var(--varighet-kort) var(--kurve); }
-  nav a:hover, nav a[aria-current='page'] { border-bottom-color: var(--pri); color: var(--tx); }
-  .cta { margin-left: auto; }
-  .mobil { margin-left: auto; }
-  .mobil summary { list-style: none; width: 44px; height: 44px; display: grid; place-content: center; gap: 5px; border-radius: 12px; cursor: pointer; }
-  .mobil summary::-webkit-details-marker { display: none; }
-  .mobil summary span { display: block; width: 22px; height: 2px; background: var(--tx); border-radius: 2px; }
-  .mobil[open] summary { background: var(--sf2); }
-  .mobil nav { position: absolute; left: 0; right: 0; top: 64px; background: var(--sf); border-bottom: 1px solid var(--bd); display: flex; flex-direction: column; gap: 4px; padding: 12px var(--gutter) 20px; box-shadow: var(--sh); }
-  .mobil nav a { padding: 12px 4px; font-size: 18px; border-bottom: 0; }
+  nav.desktop a { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: var(--r-pille); color: var(--tx); text-decoration: none; font-weight: 500; font-size: 15px; letter-spacing: -.005em; transition: background-color var(--t-ui) ease, transform var(--t-trykk) var(--ease-out); }
+  nav.desktop a[aria-current='page'] { background: var(--sf2); }
+  nav.desktop a:active { transform: scale(.97); }
+  @media (hover: hover) and (pointer: fine) { nav.desktop a:hover { background: var(--sf2); } }
+  .cta { margin-left: 6px; }
+  .meny { width: 44px; height: 44px; border: 0; background: transparent; border-radius: var(--r-pille); display: grid; place-content: center; gap: 6px; transition: transform var(--t-trykk) var(--ease-out); }
+  .meny:active { transform: scale(.94); }
+  .meny span { display: block; width: 20px; height: 2px; background: var(--tx); border-radius: 2px; }
+
+  /* Arket: ligger under skjermen (100 %) og fjæres opp. Fjæren setter transform direkte på flaten; --dim styrer bakteppet. */
+  .ark { position: fixed; inset: 0; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; padding: 0; border: 0; background: transparent; display: none; }
+  .ark[open] { display: block; }
+  .ark::backdrop { background: rgba(10, 20, 12, .45); opacity: var(--dim, 1); } /* --dim settes av fjæren; nettlesere uten arv til ::backdrop får fast bakteppe */
+  .ark-flate {
+    position: absolute; inset: auto 0 0; padding: 8px var(--gutter) calc(20px + env(safe-area-inset-bottom));
+    background: var(--glass-tung); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-radius: 28px 28px 0 0; box-shadow: inset 0 1px 0 var(--glass-kant), var(--sh-hoy);
+    transform: translateY(100%); touch-action: none; user-select: none; -webkit-user-select: none; will-change: transform;
+  }
+  .ark-flate[data-drar] a { pointer-events: none; }
+  .hank { width: 40px; height: 5px; border-radius: 3px; background: var(--mu); opacity: .5; margin: 4px auto 14px; }
+  .ark nav { display: grid; gap: 2px; margin-bottom: 16px; }
+  .ark nav a { display: flex; align-items: center; min-height: 52px; padding: 0 12px; border-radius: 14px; color: var(--tx); text-decoration: none; font-size: 22px; font-weight: 600; letter-spacing: -.02em; transition: background-color var(--t-ui) ease, transform var(--t-trykk) var(--ease-out); }
+  .ark nav a:active { background: var(--sf2); transform: scale(.98); }
+  .ark nav a[aria-current='page'] { color: var(--pri); }
   @media (min-width: 900px) {
     nav.desktop, .cta.desktop { display: flex; }
-    .mobil { display: none; }
+    .meny, .ark { display: none; }
   }
+  @media (prefers-reduced-transparency: reduce) { .ark-flate { backdrop-filter: none; -webkit-backdrop-filter: none; background: var(--sf); } }
 </style>
