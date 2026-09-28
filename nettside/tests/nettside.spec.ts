@@ -66,7 +66,7 @@ test('demoen åpner i egen fane og innloggingen virker', async ({ page, baseURL 
   await page.goto('/demo');
   const lenke = page.getByRole('link', { name: 'Prøv demoen' }).first();
   await expect(lenke).toHaveAttribute('target', '_blank');
-  await expect(lenke).toHaveAttribute('href', '/demo/app');
+  await expect(lenke).toHaveAttribute('href', '/demo/app.html');
   const { feil, eksterne } = overvaak(page, baseURL!);
   await page.goto('/demo/app');
   await expect(page).toHaveTitle('Returapp · Demo');

@@ -4,14 +4,15 @@ import hjemMork from '../assets/skjermbilder/dark/giver-home.png';
 import Telefon from './Telefon.astro';
 
 // Demoen er designprototypen (docs/design/Returapp-standalone.html) uendret, servert som /demo/app. Den åpner i en egen fane:
-// prototypen har sin egen telefonramme og fyller hele vinduet.
+// prototypen har sin egen telefonramme og fyller hele vinduet. Lenken peker på .html fordi dev-serveren bare finner filen slik;
+// nginx sender den 301 til /demo/app.
 interface Props { bredde?: number }
 const { bredde = 360 } = Astro.props;
 ---
 
 <div class="demo">
   <Telefon lys={hjemLys} mork={hjemMork} alt="Forhåndsvisning av demoen: giverens hjem-skjerm" bredde={bredde}>
-    <a class="start" href="/demo/app" target="_blank" rel="noopener">Prøv demoen</a>
+    <a class="start" href="/demo/app.html" target="_blank" rel="noopener">Prøv demoen</a>
   </Telefon>
 </div>
 
