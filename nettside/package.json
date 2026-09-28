@@ -11,7 +11,7 @@
     "build": "astro check && astro build",
     "preview": "astro preview",
     "check": "astro check",
-    "skjermbilder": "npx --prefix ../frontend playwright test --config skript/skjermbilder.config.ts",
+    "skjermbilder": "cd ../frontend && SKJERMBILDER=1 npx playwright test --project skjermbilder",
     "sjekk": "npm run build && node skript/sjekk-dist.mjs && playwright test"
   },
   "dependencies": {
