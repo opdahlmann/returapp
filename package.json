@@ -1,0 +1,8 @@
+{
+  "name": "returapp",
+  "private": true,
+  "description": "Rot: `npm run dev` starter API (5080), appen (4200) og nettsiden (4321) sammen. Ctrl-C stopper alle tre (Astro 7 kjører i bakgrunnen og må stoppes eksplisitt, fra nettside/).",
+  "scripts": {
+    "dev": "trap 'trap - INT TERM; (cd nettside && npx astro dev stop); kill 0' INT TERM; dotnet run --project backend/src/Returapp.Api & npm --prefix frontend start & npm --prefix nettside run dev & wait"
+  }
+}

@@ -35,6 +35,12 @@ Krever .NET 10 SDK (10.0.102), Node 22+ og tilgang til dev-databasen. Docker tre
 cp .env.development.example .env.development   # fyll inn Mongo__ConnectionString og Jwt__Secret
 ```
 
+Alt på én gang (API, app og nettside, Ctrl-C stopper alle):
+
+```sh
+npm run dev
+```
+
 Backend (http://localhost:5080, helsesjekk `/health` og `/ready`):
 
 ```sh
