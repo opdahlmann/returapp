@@ -206,8 +206,8 @@ export const SCREENS: ScreenDef[] = [
 ];
 
 /** Åpner prototypen (fersk tilstand) og går til startpunktet. */
-export async function openPrototype(page: Page, start: ScreenDef['start']): Promise<Proto> {
-  await page.goto(PROTOTYPE);
+export async function openPrototype(page: Page, start: ScreenDef['start'], file = PROTOTYPE): Promise<Proto> {
+  await page.goto(file);
   const screen = page.locator('[data-theme]').first();
   const settle = () => page.waitForTimeout(350);
   const p: Proto = {
