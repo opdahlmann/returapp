@@ -48,3 +48,26 @@ test('Offline: cachet liste vises og lagring gir toast', async ({ page, context,
   await page.getByRole('button', { name: 'Logg ut' }).click();
   await expect.poll(() => page.evaluate(async () => (await caches.keys()).filter((k) => k.includes(':data:')).length)).toBe(0);
 });
+
+test('nginx: sikkerhets- og cache-headere', async ({ request, baseURL }) => {
+  test.skip(!process.env['E2E_BASE_URL'], 'Headerne settes av nginx (kjør mot container med E2E_BASE_URL)');
+  const get = async (path: string) => (await request.get(`${baseURL}${path}`)).headers();
+  const index = await (await request.get(`${baseURL}/`)).text();
+  const js = index.match(/src="(main-[^"]+\.js)"/)![1];
+  const expected: [string, string | undefined][] = [
+    ['/', 'no-cache'],
+    ['/p/R-2041', 'no-cache'],
+    ['/ngsw-worker.js', 'no-cache'],
+    [`/${js}`, 'public, max-age=31536000, immutable'],
+    ['/icons/icon-192x192.png', undefined],
+  ];
+  for (const [path, cache] of expected) {
+    const h = await get(path);
+    expect(h['x-content-type-options'], path).toBe('nosniff');
+    expect(h['strict-transport-security'], path).toBe('max-age=31536000; includeSubDomains');
+    expect(h['cache-control'], path).toBe(cache);
+  }
+  const api = await get('/api/postnr/4865');
+  expect(api['cache-control'] ?? '').not.toContain('immutable');
+  expect(api['cache-control'] ?? '').not.toContain('no-cache, ');
+});
