@@ -1,3 +1,4 @@
+@import './tokens.css';
 /* Figtree self-hostet (variabel font, samme filer som prototypen) */
 @font-face {
   font-family: 'Figtree';
@@ -16,15 +17,13 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* Reset og tokens kopiert eksakt fra prototypen */
+/* Reset kopiert eksakt fra prototypen (tokens ligger i tokens.css) */
 body{margin:0;background:#E4E8E0}
 *{box-sizing:border-box}
 button{font:inherit;cursor:pointer;color:inherit}
 input,textarea,select{font:inherit;color:inherit}
 input::placeholder,textarea::placeholder{color:var(--mu);opacity:1}
 a{color:var(--pri)}a:hover{color:var(--tint-tx)}
-[data-theme]{--bg:#F3F4EF;--sf:#FFFFFF;--sf2:#EBEEE6;--tx:#182119;--mu:#66716A;--bd:#E1E4DC;--pri:#2E7A45;--pri-tx:#FFFFFF;--tint:#DDEED9;--tint-tx:#1F5A31;--warn:#8F5410;--warn-bg:#F7E7C8;--dan:#B23B33;--dan-bg:#F8DDDA;--info:#2B5FA6;--info-bg:#DCE7F6;--sh:0 1px 2px rgba(20,30,20,.05),0 8px 24px rgba(20,30,20,.05)}
-[data-theme="dark"]{--bg:#0F1512;--sf:#171E19;--sf2:#1F2822;--tx:#EDF1EA;--mu:#93A096;--bd:#28322B;--pri:#5DBA72;--pri-tx:#0B1A0F;--tint:#1D3626;--tint-tx:#9BD9A9;--warn:#E5B36A;--warn-bg:#3A2D14;--dan:#F08A80;--dan-bg:#42201D;--info:#8DB4EE;--info-bg:#1B2C48;--sh:none}
 @keyframes ra-up{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
 @keyframes ra-fade{from{opacity:0}to{opacity:1}}
 

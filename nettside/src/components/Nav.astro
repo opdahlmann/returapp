@@ -1,0 +1,52 @@
+---
+import { APP_URL } from '../consts';
+import Knapp from './Knapp.astro';
+import Logo from './Logo.astro';
+
+const lenker = [
+  ['/funksjoner', 'Funksjoner'],
+  ['/for/byggeplass', 'For byggeplass'],
+  ['/for/hentefirma', 'For hentefirma'],
+  ['/demo', 'Demo'],
+];
+const her = Astro.url.pathname.replace(/\.html$/, '');
+---
+
+<header class="topp">
+  <div class="wrap rad">
+    <a href="/" class="logo" aria-label="Returapp, til forsiden"><Logo /></a>
+    <nav aria-label="Hovedmeny" class="desktop">
+      {lenker.map(([href, tekst]) => <a href={href} aria-current={her === href ? 'page' : undefined}>{tekst}</a>)}
+    </nav>
+    <div class="cta desktop"><Knapp href={APP_URL} liten>Meld henting</Knapp></div>
+    <details class="mobil">
+      <summary aria-label="Meny"><span></span><span></span><span></span></summary>
+      <nav aria-label="Hovedmeny">
+        {lenker.map(([href, tekst]) => <a href={href} aria-current={her === href ? 'page' : undefined}>{tekst}</a>)}
+        <Knapp href={APP_URL}>Meld henting</Knapp>
+      </nav>
+    </details>
+  </div>
+</header>
+
+<style>
+  .topp { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(12px); border-bottom: 1px solid var(--bd); }
+  .rad { display: flex; align-items: center; gap: 28px; height: 64px; }
+  .logo { display: flex; align-items: center; color: var(--tx); text-decoration: none; }
+  .desktop { display: none; }
+  nav.desktop { display: none; gap: 24px; margin-left: 12px; }
+  nav a { color: var(--tx); text-decoration: none; font-weight: 600; padding: 6px 0; border-bottom: 2px solid transparent; transition: border-color var(--varighet-kort) var(--kurve); }
+  nav a:hover, nav a[aria-current='page'] { border-bottom-color: var(--pri); color: var(--tx); }
+  .cta { margin-left: auto; }
+  .mobil { margin-left: auto; }
+  .mobil summary { list-style: none; width: 44px; height: 44px; display: grid; place-content: center; gap: 5px; border-radius: 12px; cursor: pointer; }
+  .mobil summary::-webkit-details-marker { display: none; }
+  .mobil summary span { display: block; width: 22px; height: 2px; background: var(--tx); border-radius: 2px; }
+  .mobil[open] summary { background: var(--sf2); }
+  .mobil nav { position: absolute; left: 0; right: 0; top: 64px; background: var(--sf); border-bottom: 1px solid var(--bd); display: flex; flex-direction: column; gap: 4px; padding: 12px var(--gutter) 20px; box-shadow: var(--sh); }
+  .mobil nav a { padding: 12px 4px; font-size: 18px; border-bottom: 0; }
+  @media (min-width: 900px) {
+    nav.desktop, .cta.desktop { display: flex; }
+    .mobil { display: none; }
+  }
+</style>

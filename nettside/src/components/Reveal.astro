@@ -1,0 +1,7 @@
+---
+// Innhold som glir inn når det kommer i syne (observer i Base.astro). i = plass i rekken, gir 60 ms forskyvning.
+interface Props { i?: number; class?: string }
+const { i = 0, class: klasse = '' } = Astro.props;
+---
+
+<div data-reveal style={`--i:${i}`} class={klasse}><slot /></div>

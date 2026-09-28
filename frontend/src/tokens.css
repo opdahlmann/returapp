@@ -1,0 +1,3 @@
+/* Designtokens fra prototypen, lys og mørk. Delt med nettsiden (nettside/): endre farger her, ikke i styles.css. */
+[data-theme]{--bg:#F3F4EF;--sf:#FFFFFF;--sf2:#EBEEE6;--tx:#182119;--mu:#66716A;--bd:#E1E4DC;--pri:#2E7A45;--pri-tx:#FFFFFF;--tint:#DDEED9;--tint-tx:#1F5A31;--warn:#8F5410;--warn-bg:#F7E7C8;--dan:#B23B33;--dan-bg:#F8DDDA;--info:#2B5FA6;--info-bg:#DCE7F6;--sh:0 1px 2px rgba(20,30,20,.05),0 8px 24px rgba(20,30,20,.05)}
+[data-theme="dark"]{--bg:#0F1512;--sf:#171E19;--sf2:#1F2822;--tx:#EDF1EA;--mu:#93A096;--bd:#28322B;--pri:#5DBA72;--pri-tx:#0B1A0F;--tint:#1D3626;--tint-tx:#9BD9A9;--warn:#E5B36A;--warn-bg:#3A2D14;--dan:#F08A80;--dan-bg:#42201D;--info:#8DB4EE;--info-bg:#1B2C48;--sh:none}

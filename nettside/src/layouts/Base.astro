@@ -1,0 +1,49 @@
+---
+import '../../../frontend/src/tokens.css';
+import '../styles/global.css';
+import Footer from '../components/Footer.astro';
+import Nav from '../components/Nav.astro';
+import Seo, { type SeoProps } from '../components/Seo.astro';
+
+type Props = SeoProps;
+const props = Astro.props;
+---
+
+<!doctype html>
+<html lang="nb" data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Tema før stilene, så det ikke blinker: appens tokens leser data-theme på <html>. -->
+    <script is:inline>
+      (function () {
+        var m = matchMedia('(prefers-color-scheme: dark)');
+        var s = function () { document.documentElement.dataset.theme = m.matches ? 'dark' : 'light'; };
+        s();
+        m.addEventListener('change', s);
+      })();
+    </script>
+    <link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <Seo {...props} />
+  </head>
+  <body>
+    <a class="hopp" href="#innhold">Hopp til innholdet</a>
+    <Nav />
+    <main id="innhold"><slot /></main>
+    <Footer />
+    <script>
+      // Én observer: [data-reveal] får klassen er-synlig én gang når 20 % er i syne. Uten bevegelse (reduced motion) gjør CSS ingenting.
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            if (!e.isIntersecting) continue;
+            e.target.classList.add('er-synlig');
+            io.unobserve(e.target);
+          }
+        },
+        { threshold: 0.2 },
+      );
+      document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+    </script>
+  </body>
+</html>

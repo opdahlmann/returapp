@@ -1,0 +1,13 @@
+---
+// Ordmerket fra innloggingsskjermen: «Retur» i tekstfargen og «app» i grønt. På mørkt bånd blir «app» lime.
+interface Props { storrelse?: number }
+const { storrelse = 22 } = Astro.props;
+---
+
+<span class="ordmerke" style={`font-size:${storrelse}px`}>Retur<em>app</em></span>
+
+<style>
+  .ordmerke { font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+  .ordmerke em { font-style: normal; color: var(--pri); }
+  :global(.mork) .ordmerke em { color: var(--mork-aksent); }
+</style>

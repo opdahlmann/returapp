@@ -1,0 +1,10 @@
+---
+// Liten versal-etikett over en overskrift. Maks tre på forsiden; sjekk-dist.mjs teller.
+---
+
+<span class="eyebrow"><slot /></span>
+
+<style>
+  .eyebrow { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--pri); margin-bottom: 12px; }
+  :global(.mork) .eyebrow { color: var(--mork-aksent); }
+</style>

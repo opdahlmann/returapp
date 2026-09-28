@@ -1,0 +1,41 @@
+---
+import { COMPANY, CONTACT_EMAIL, KODETANK_URL, ORG_NR, TAGLINE } from '../consts';
+import Logo from './Logo.astro';
+
+const sider = [
+  ['/funksjoner', 'Funksjoner'],
+  ['/for/byggeplass', 'For byggeplass'],
+  ['/for/hentefirma', 'For hentefirma'],
+  ['/demo', 'Demo'],
+  ['/kontakt', 'Kontakt'],
+  ['/personvern', 'Personvern'],
+];
+---
+
+<footer class="bunn">
+  <div class="wrap grid">
+    <div>
+      <Logo storrelse={24} />
+      <p class="dempet">{TAGLINE}.</p>
+    </div>
+    <nav aria-label="Alle sider">
+      {sider.map(([href, tekst]) => <a href={href}>{tekst}</a>)}
+    </nav>
+    <div class="firma dempet">
+      <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+      <p>{COMPANY} · org.nr {ORG_NR}</p>
+      <p><a href={KODETANK_URL} rel="noopener">kodetank.no</a></p>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .bunn { border-top: 1px solid var(--bd); padding-block: 48px; font-size: 15px; background: var(--sf); }
+  .grid { display: grid; gap: 28px; }
+  .bunn p { margin-top: 8px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  nav a, .firma a { color: var(--tx); text-decoration: none; font-weight: 600; }
+  nav a:hover, .firma a:hover { color: var(--pri); }
+  .firma p { margin-top: 6px; }
+  @media (min-width: 768px) { .grid { grid-template-columns: 1.2fr 1fr 1fr; } }
+</style>

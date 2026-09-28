@@ -1,0 +1,21 @@
+---
+import { SITE_NAME, SITE_URL } from '../consts';
+
+// Fylles ut i N7 (OG, JSON-LD). Nå: tittel, beskrivelse og canonical.
+export interface SeoProps {
+  tittel: string;
+  beskrivelse: string;
+  /** Sti uten skråstrek på slutten; '' for forsiden. */
+  sti: string;
+}
+const { tittel, beskrivelse, sti } = Astro.props as SeoProps;
+const fullTittel = sti === '' ? tittel : `${tittel} | ${SITE_NAME}`;
+---
+
+<title>{fullTittel}</title>
+<meta name="description" content={beskrivelse} />
+<link rel="canonical" href={`${SITE_URL}${sti}`} />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#1B4D2B" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0F1512" />
+<link rel="icon" type="image/png" href="/icons/icon-192x192.png" />
+<link rel="apple-touch-icon" href="/icons/icon-192x192.png" />

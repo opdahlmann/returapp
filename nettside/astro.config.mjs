@@ -10,4 +10,6 @@ export default defineConfig({
   build: { format: 'file' }, // /funksjoner.html → nginx serverer den som /funksjoner, som canonical
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   integrations: [sitemap({ filter: (page) => !page.endsWith('/404') })],
+  // Tokens leses rett fra appen (frontend/src/tokens.css); dev-serveren må få lov til å lese utenfor nettside/.
+  vite: { server: { fs: { allow: ['..'] } } },
 });

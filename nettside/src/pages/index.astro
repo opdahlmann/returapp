@@ -1,15 +1,29 @@
 ---
-import { SITE_NAME, TAGLINE } from '../consts';
+import hjemLys from '../assets/skjermbilder/light/giver-home.png';
+import hjemMork from '../assets/skjermbilder/dark/giver-home.png';
+import Knapp from '../components/Knapp.astro';
+import Seksjon from '../components/Seksjon.astro';
+import Telefon from '../components/Telefon.astro';
+import { APP_URL, TAGLINE } from '../consts';
+import Base from '../layouts/Base.astro';
 ---
 
-<!doctype html>
-<html lang="nb">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{SITE_NAME}</title>
-  </head>
-  <body>
-    <h1>{TAGLINE}</h1>
-  </body>
-</html>
+<Base tittel="Returapp: enkel retur og gjenbruk fra byggeplassen" beskrivelse="Meld materialer som skal ut i fem steg. Et hentefirma som dekker kommunen får beskjed, henter og bekrefter med bilde. Gratis for byggeplassen." sti="">
+  <Seksjon mork>
+    <div class="hero">
+      <div>
+        <h1>{TAGLINE}.</h1>
+        <p class="ingress dempet">Ta bilde, si hvor mye og hvor det står. Et hentefirma i nærheten får beskjed, henter og bekrefter.</p>
+        <div class="knapper"><Knapp href={APP_URL}>Meld henting</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
+      </div>
+      <Telefon lys={hjemLys} mork={hjemMork} alt="Giverens hjem-skjerm med knappen Meld henting og kategoriene" eager />
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  .hero { display: grid; gap: 40px; align-items: center; }
+  .ingress { margin-top: 20px; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  @media (min-width: 900px) { .hero { grid-template-columns: 7fr 5fr; } .hero :global(.telefon) { justify-self: end; } }
+</style>
