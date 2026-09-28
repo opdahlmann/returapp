@@ -2,8 +2,8 @@
 import { getImage } from 'astro:assets';
 import type { ImageMetadata } from 'astro';
 
-// Én telefonramme for alle skjermbilder (lys og mørk etter systemet). Mørk ramme og dyp skygge, ingen «øy»: skjermbildene har
-// ingen statuslinje, så en øy ville dekket appens overskrift. Slot for innhold oppå.
+// Én telefonramme for alle skjermbilder (lys og mørk etter systemet). Mørk ramme, dyp skygge, og et statuslinjefelt øverst
+// (11 % av bredden, samme farge som appens bakgrunn) med «øy», siden skjermbildene selv ikke har statuslinje. Slot for innhold oppå.
 interface Props {
   lys?: ImageMetadata;
   mork?: ImageMetadata;
@@ -40,6 +40,8 @@ const sizes = `(min-width: 768px) ${bredde}px, 80vw`;
     box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .14), 0 40px 90px -30px rgba(20, 30, 20, .55), 0 2px 6px rgba(0, 0, 0, .25);
     transform-style: preserve-3d;
   }
-  .skjerm { position: relative; width: 100%; height: 100%; border-radius: 48px; overflow: hidden; background: var(--bg); }
-  .skjerm img { width: 100%; height: 100%; object-fit: cover; }
+  .skjerm { position: relative; width: 100%; height: 100%; padding-top: 11%; border-radius: 48px; overflow: hidden; background: var(--bg); }
+  .skjerm::before { content: ''; position: absolute; top: 3.2%; left: 50%; width: 24%; aspect-ratio: 96 / 28; border-radius: 999px; background: #0d110e; transform: translateX(-50%); }
+  .skjerm picture { display: block; height: 100%; }
+  .skjerm img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 </style>
