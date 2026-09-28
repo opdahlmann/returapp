@@ -149,7 +149,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   .kort { padding: 28px; border-radius: var(--r-kort); display: flex; flex-direction: column; gap: 10px; }
   .kort h3 { font-size: 24px; }
   .kort-bunn { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-top: 12px; }
-  .pil { font-weight: 700; text-decoration: none; }
+  .pil { display: inline-flex; align-items: center; min-height: 44px; font-weight: 700; text-decoration: none; }
   .pil span { display: inline-block; transition: transform var(--varighet-kort) var(--kurve); }
   .pil:hover span { transform: translateX(4px); }
   @media (min-width: 768px) { .to { grid-template-columns: 1fr 1fr; } }

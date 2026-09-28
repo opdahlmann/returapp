@@ -81,7 +81,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   .tint { color: var(--tint-tx); background: var(--tint); }
   .pri { color: var(--pri-tx); background: var(--pri); }
   .dan { color: var(--dan); background: var(--dan-bg); }
-  .mu { color: var(--mu); background: var(--sf2); }
+  .mu { color: var(--tx); background: var(--sf2); } /* appen bruker --mu her, men det gir bare 4,3:1 på --sf2 */
   @media (min-width: 768px) { .statuser li { grid-template-columns: 160px 1fr; gap: 24px; } }
 
   .cta { text-align: center; display: flex; flex-direction: column; align-items: center; }
