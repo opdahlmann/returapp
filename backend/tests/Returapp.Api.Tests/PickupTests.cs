@@ -175,6 +175,17 @@ public class PickupTests(ApiFixture api) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Label_qr_is_svg_for_readers_only()
+    {
+        var res = await (await api.LoginAs("jonas.hem@skanska.no")).GetAsync("/api/pickups/R-2041/qr.svg");
+        Assert.Equal("image/svg+xml", res.Content.Headers.ContentType?.MediaType);
+        var svg = await res.Content.ReadAsStringAsync();
+        Assert.StartsWith("<svg ", svg);
+        Assert.Contains("viewBox", svg);
+        Assert.Equal(HttpStatusCode.NotFound, (await (await Guest()).GetAsync("/api/pickups/R-2041/qr.svg")).StatusCode);
+    }
+
+    [Fact]
     public async Task Tip_is_stored()
     {
         (await (await Guest()).PostAsJsonAsync("/api/tips", new { postnr = "4878", text = "Grimstad Gjenbruk " + ApiFixture.RunId })).EnsureSuccessStatusCode();

@@ -365,7 +365,7 @@ Sortert etter effekt delt på risiko. Ved likt forhold kommer lavest risiko før
 
 ## Rekkefølge
 
-Punkt 1–14 (funn 1–16) er gjennomført 2026-09-15 i commit på `opd`. Gjenstår: 15–17 (funn 17, 18 og 19).
+Punkt 1–14 (funn 1–16) er gjennomført 2026-09-15, og punkt 15–17 (funn 17–19) 2026-09-28, alle i commit på `opd`.
 
 - [x] 1. `@angular/forms` fjernes (funn 2)
 - [x] 2. Slett `shell/empty.ts` (funn 8)
@@ -381,6 +381,6 @@ Punkt 1–14 (funn 1–16) er gjennomført 2026-09-15 i commit på `opd`. Gjenst
 - [x] 12. Del `MONTHS` fra `format.ts` (funn 12)
 - [x] 13. `num()` bruker `toLocaleString('nb-NO')` (funn 16)
 - [x] 14. Slå sammen e2e-hjelperne `devCode` og `mailLink` (funn 15)
-- [ ] 15. Legg til gjest-test for SMS ved start, fullført og avvik, og innfør deretter `Notifier.Giver` (funn 17)
-- [ ] 16. Legg til header-sjekk i e2e, og samle deretter nginx-headerne med `map` (funn 18)
-- [ ] 17. Vurder QR fra API-et og fjern `qrcode`, etter en beslutning om merkelapp uten nett (funn 19)
+- [x] 15. Legg til gjest-test for SMS ved start, fullført og avvik, og innfør deretter `Notifier.Giver` (funn 17)
+- [x] 16. Legg til header-sjekk i e2e, og samle deretter nginx-headerne med `map` (funn 18)
+- [x] 17. Vurder QR fra API-et og fjern `qrcode`, etter en beslutning om merkelapp uten nett (funn 19)

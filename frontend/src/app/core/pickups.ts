@@ -138,6 +138,10 @@ export class PickupApi {
     return firstValueFrom(this.http.get<Pickup>(`/api/pickups/${id}`));
   }
 
+  qr(id: string) {
+    return firstValueFrom(this.http.get(`/api/pickups/${id}/qr.svg`, { responseType: 'text' }));
+  }
+
   create(body: CreatePickup) {
     return firstValueFrom(this.http.post<Pickup>('/api/pickups', body));
   }

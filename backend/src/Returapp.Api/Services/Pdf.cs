@@ -135,10 +135,11 @@ public static class Pdf
         });
     })).GeneratePdf();
 
-    public static string Qr(string text)
+    /// Uten stillesone (quietZone: false) må omgivelsene gi hvit marg – merkelappen i appen har 24 px padding.
+    public static string Qr(string text, bool quietZone = true)
     {
         using var gen = new QRCodeGenerator();
         using var data = gen.CreateQrCode(text, QRCodeGenerator.ECCLevel.M);
-        return new SvgQRCode(data).GetGraphic(8);
+        return new SvgQRCode(data).GetGraphic(8, "#182119", "transparent", quietZone, SvgQRCode.SizingMode.ViewBoxAttribute);
     }
 }

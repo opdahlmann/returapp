@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, input, resource } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import QRCode from 'qrcode';
 import { errorText } from '../core/format';
 import { PickupApi } from '../core/pickups';
 import { sharePdf } from '../giver/giver-sheets';
@@ -34,13 +33,11 @@ export class PickupLabel {
   private sanitizer = inject(DomSanitizer);
   readonly id = input.required<string>();
   protected pickup = resource({ params: () => this.id(), loader: ({ params }) => this.api.get(params) });
-  /** Ekte QR med lenke til ordren. SVG-en genereres lokalt fra vår egen URL, derfor trygg å sette inn. */
+  /** Ekte QR med lenke til ordren. SVG-en lages av vårt eget API fra ordre-id-en, derfor trygg å sette inn. */
   protected qr = resource({
     params: () => this.id(),
     loader: async ({ params }) =>
-      this.sanitizer.bypassSecurityTrustHtml(
-        (await QRCode.toString(labelUrl(params), { type: 'svg', margin: 0, errorCorrectionLevel: 'M', color: { dark: '#182119', light: '#0000' } })).replace('<svg ', '<svg width="180" height="180" '),
-      ),
+      this.sanitizer.bypassSecurityTrustHtml((await this.api.qr(params)).replace('<svg ', '<svg width="180" height="180" ')),
   });
 
   protected print() {

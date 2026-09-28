@@ -319,6 +319,13 @@ public static class PickupEndpoints
             if (p == null || !CanRead(ctx.User.Caller(), p)) return AuthEndpoints.Err(404, "Fant ikke hentingen");
             return Results.File(Pdf.Label(p, $"{cfg["App:BaseUrl"]}/p/{p.Id}"), "application/pdf", $"merkelapp-{p.Id}.pdf");
         });
+
+        g.MapGet("/{id}/qr.svg", async (string id, HttpContext ctx, Db db, IConfiguration cfg) =>
+        {
+            var p = await db.Pickups.Find(x => x.Id == id).FirstOrDefaultAsync();
+            if (p == null || !CanRead(ctx.User.Caller(), p)) return AuthEndpoints.Err(404, "Fant ikke hentingen");
+            return Results.Text(Pdf.Qr($"{cfg["App:BaseUrl"]}/p/{p.Id}", quietZone: false), "image/svg+xml");
+        });
     }
 
     /// 404 hvis ordren ikke finnes eller ikke er sjåførens, ellers 409 med gitt melding.

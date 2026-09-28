@@ -43,8 +43,7 @@
                 }
               ],
               "outputHashing": "all",
-              "serviceWorker": "ngsw-config.json",
-              "allowedCommonJsDependencies": ["qrcode"]
+              "serviceWorker": "ngsw-config.json"
             },
             "development": {
               "optimization": false,
