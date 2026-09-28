@@ -66,6 +66,23 @@ a, button, summary { touch-action: manipulation; cursor: pointer; }
 .flate a { color: var(--tint-tx); }
 
 .wrap { width: min(100% - 2 * var(--gutter), var(--maks)); margin-inline: auto; }
+
+/* Celler (bento på forsiden, rollene på /funksjoner): hvit med kant, eller tonet; med eller uten telefonutsnitt. */
+.celle { border-radius: var(--r-kort); border: 1px solid var(--bd); background: var(--sf); overflow: hidden; display: flex; flex-direction: column; transition: border-color var(--varighet-kort) var(--kurve); }
+.celle:hover { border-color: var(--mu); }
+.celle.tonet { background: var(--tint); border-color: transparent; }
+.celle.tonet h3, .celle.tonet .liste { color: var(--tint-tx); }
+.celle.tonet .dempet { color: var(--tint-tx); opacity: .85; }
+.celle-tekst { padding: 20px 22px 22px; }
+.celle-tekst h3 { font-size: 22px; }
+.celle-tekst p, .celle-tekst .liste { margin-top: 8px; }
+.liste { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+@media (min-width: 768px) {
+  /* Brede celler: tekst til venstre, telefonutsnitt (300 px) til høyre i full høyde. */
+  .celle.rad { flex-direction: row-reverse; align-items: stretch; }
+  .celle.rad .utsnitt { width: 300px; height: auto; min-height: 320px; flex: none; border-left: 1px solid var(--bd); }
+  .celle.rad .celle-tekst { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px; }
+}
 .skjul-visuelt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hopp { position: absolute; left: 16px; top: -100px; z-index: 100; background: var(--pri); color: var(--pri-tx); padding: 10px 14px; border-radius: var(--r-knapp); font-weight: 700; }
 .hopp:focus { top: 12px; }

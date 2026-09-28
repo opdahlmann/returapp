@@ -16,6 +16,7 @@ const m = await bilde(mork);
 </picture>
 
 <style>
-  .utsnitt { display: block; height: var(--hoyde); overflow: hidden; background: var(--bg); }
-  .utsnitt img { width: 100%; max-width: 402px; margin-inline: auto; height: auto; }
+  /* Boksen har bestemt høyde (--hoyde, eller strukket i en rad-celle); bildet fyller den absolutt, beskåret fra toppen. */
+  .utsnitt { display: block; position: relative; height: var(--hoyde); overflow: hidden; background: var(--bg); }
+  .utsnitt img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 </style>

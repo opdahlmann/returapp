@@ -20,8 +20,8 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
     <h2>Hver rolle ser sitt</h2>
     <div class="roller">
       {roller.map((r, i) => (
-        <Reveal i={i} class:list={['celle', { tonet: !r.bilde }]}>
-          {r.bilde && <Utsnitt lys={bilde('light', r.bilde)} mork={bilde('dark', r.bilde)} alt={r.alt ?? ''} hoyde={220} />}
+        <Reveal i={i} class:list={['celle', { rad: !!r.bilde, tonet: !r.bilde }]}>
+          {r.bilde && <Utsnitt lys={bilde('light', r.bilde)} mork={bilde('dark', r.bilde)} alt={r.alt ?? ''} hoyde={240} />}
           <div class="celle-tekst">
             <h3>{r.navn}</h3>
             <ul class="liste">{r.punkter.map((p) => <li>{p}</li>)}</ul>
@@ -59,17 +59,14 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
 
 <style>
   h2 { margin-bottom: 24px; }
-  .liste { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
-
-  /* Fire roller i samme celler som forsidens bento: to med skjermbildeutsnitt, to tonet. */
+  /* Fire roller i samme celler som forsidens bento (global.css): to med telefonutsnitt til høyre, to tonet. */
   .roller { display: grid; gap: 16px; }
-  .roller :global(.celle) { border-radius: var(--r-kort); border: 1px solid var(--bd); background: var(--sf); overflow: hidden; display: flex; flex-direction: column; transition: border-color var(--varighet-kort) var(--kurve); }
-  .roller :global(.celle:hover) { border-color: var(--mu); }
-  .roller :global(.tonet) { background: var(--tint); border-color: transparent; }
-  .roller :global(.tonet h3), .roller :global(.tonet .liste) { color: var(--tint-tx); }
-  .celle-tekst { padding: 22px 24px 26px; }
-  .celle-tekst h3 { font-size: 24px; margin-bottom: 12px; }
-  @media (min-width: 768px) { .roller { grid-template-columns: 1fr 1fr; } }
+  .roller :global(.celle-tekst h3) { margin-bottom: 4px; }
+  /* Desktop: de to med telefon tar hele bredden (bred tekstspalte, kort celle), de to tonede deler en rad. */
+  @media (min-width: 768px) {
+    .roller { grid-template-columns: 1fr 1fr; }
+    .roller :global(.rad) { grid-column: span 2; }
+  }
 
   .chips { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
   .chips li { height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--bd); background: var(--sf); font-weight: 600; }

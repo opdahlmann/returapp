@@ -50,7 +50,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
     <h2>{bento.h2}</h2>
     <div class="bento">
       {bento.celler.map((c, i) => (
-        <Reveal i={i} class:list={['celle', { bred: c.bred, tonet: !c.bilde }]}>
+        <Reveal i={i} class:list={['celle', { bred: c.bred, rad: c.bred, tonet: !c.bilde }]}>
           {c.bilde && <Utsnitt lys={bilde('light', c.bilde)} mork={bilde('dark', c.bilde)} alt={c.alt ?? ''} hoyde={c.bred ? 220 : 180} />}
           <div class="celle-tekst">
             <h3>{c.tittel}</h3>
@@ -135,25 +135,13 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   .steg p { margin-top: 8px; max-width: 32ch; }
   @media (min-width: 768px) { .steg { grid-template-columns: repeat(3, 1fr); } }
 
-  /* 4 Bento: 6 celler, 2 + 3 + 1 på desktop */
+  /* 4 Bento: 6 celler, 2 + 3 + 1 på desktop (cellestilen ligger i global.css) */
   .bento { display: grid; gap: 16px; }
-  .bento :global(.celle) { border-radius: var(--r-kort); border: 1px solid var(--bd); background: var(--sf); overflow: hidden; display: flex; flex-direction: column; transition: border-color var(--varighet-kort) var(--kurve); }
-  .bento :global(.celle:hover) { border-color: var(--mu); }
-  .bento :global(.tonet) { background: var(--tint); border-color: transparent; }
-  .bento :global(.tonet h3) { color: var(--tint-tx); }
-  .bento :global(.tonet .dempet) { color: var(--tint-tx); opacity: .85; }
-  .celle-tekst { padding: 20px 22px 22px; }
-  .celle-tekst p { margin-top: 6px; }
   @media (min-width: 768px) {
     .bento { grid-template-columns: repeat(3, 1fr); }
-    /* Brede celler: tekst til venstre, telefonutsnitt (300 px) til høyre. */
-    .bento :global(.bred) { grid-column: span 2; flex-direction: row-reverse; align-items: stretch; }
-    .bento :global(.bred .utsnitt) { width: 300px; height: 320px; flex: none; border-left: 1px solid var(--bd); }
-    .bento :global(.bred .utsnitt img) { width: 300px; }
-    .bento :global(.bred .celle-tekst) { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px; }
+    .bento :global(.bred) { grid-column: span 2; }
     .bento :global(.celle:nth-child(6)) { grid-column: span 3; }
-    .bento :global(.celle:nth-child(6) .utsnitt) { width: 402px; height: 340px; }
-    .bento :global(.celle:nth-child(6) .utsnitt img) { width: 402px; }
+    .bento :global(.celle:nth-child(6) .utsnitt) { width: 402px; }
   }
 
   /* 5 For hvem: to like kort */
