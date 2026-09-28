@@ -11,6 +11,8 @@ Ingen Docker Compose, ingen image-registry, ingen volumer. Bakgrunn og begrunnel
 | `returapp-dev-web` | `opd` | `infra/web/Dockerfile` | `.` | 80 | `dev-app.returapp.no` |
 | `returapp-api` | `main` | `infra/api/Dockerfile` | `.` | 8080 | `api.returapp.no` |
 | `returapp-web` | `main` | `infra/web/Dockerfile` | `.` | 80 | `app.returapp.no` |
+| `returapp-dev-nettside` | `opd` | `infra/nettside/Dockerfile` | `.` | 80 | `dev.returapp.no` |
+| `returapp-nettside` | `main` | `infra/nettside/Dockerfile` | `.` | 80 | `returapp.no` og `www.returapp.no` |
 
 - Build Type: **Dockerfile** (ikke Compose, Nixpacks eller Railpack).
 - Build-time Arguments: **ingen**. Dockerfilene bygger production som standard, også for dev.
@@ -18,7 +20,7 @@ Ingen Docker Compose, ingen image-registry, ingen volumer. Bakgrunn og begrunnel
 - Alle domener: HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect.
 - Angular-appen kaller relativ `/api` på sitt eget domene. `web` proxyer internt til API-appen via tjenestenavnet, aldri via `api.returapp.no`. Derfor trengs ingen CORS.
 - API-domenet brukes til helsesjekk, overvåkning og integrasjoner.
-- `returapp.no` uten subdomene er reservert for en egen nettside og brukes ikke av Returapp.
+- Nettsiden på `returapp.no` er statisk (Astro, `nettside/`) og har ingen `/api`. `www` sendes 301 til apex av nginx i imaget. Plan: `docs/nettside-plan.md`.
 
 ## 2 · Hvor variablene skal
 
@@ -76,9 +78,13 @@ API_UPSTREAM=http://<tjenestenavnet til API-appen i samme miljø>:8080
 Tjenestenavnet genereres av Dokploy. Finn det i API-appens **Logs**-fane: containervelgeren viser
 `<tjenestenavn>.1.<id>`. Bruk delen før `.1.`.
 
+### Nettside (`returapp-dev-nettside` / `returapp-nettside`)
+
+Ingen variabler. Bygget låner `frontend/src/tokens.css`, `frontend/public/fonts`, `frontend/public/icons` og `docs/design/Returapp-demo.html` fra repo-roten, derfor Build Context `.`.
+
 ## 4 · Oppsett steg for steg
 
-1. **DNS**: A-record for `dev-api`, `dev-app`, `api` og `app` under `returapp.no` → Dokploy-vertens IP, **før** første deploy (ellers feiler Let's Encrypt).
+1. **DNS**: A-record for `dev-api`, `dev-app`, `api`, `app`, `dev`, `www` og apex `returapp.no` → Dokploy-vertens IP, **før** første deploy (ellers feiler Let's Encrypt).
 2. **Prosjekt** `returapp` i Dokploy.
 3. **API først**: Create Application → innstillinger fra § 1 → Environment fra § 3 → Domain → Deploy. Noter tjenestenavnet.
 4. **Web**: Create Application → innstillinger fra § 1 → `API_UPSTREAM` → Domain (HTTPS på, Let's Encrypt, HTTP→HTTPS-redirect) → Deploy.
@@ -89,6 +95,7 @@ Tjenestenavnet genereres av Dokploy. Finn det i API-appens **Logs**-fane: contai
    ```
    Ny versjon startes ved siden av den gamle, og Swarm ruller tilbake hvis den ikke blir frisk innen ett minutt (tidene er nanosekunder).
 7. Gjenta 3–6 for det andre miljøet. Dev (`opd`) settes opp først: API etter fase 1, web etter fase 3.
+8. **Nettside**: Create Application → innstillinger fra § 1 (ingen Environment) → Domain `returapp.no` og `www.returapp.no` (dev: `dev.returapp.no`) → Deploy. Auto-deploy og Update Config som over.
 
 ## 5 · Røyktest etter deploy
 
@@ -100,6 +107,7 @@ Eksemplene er prod. For dev: `dev-api.returapp.no` og `dev-app.returapp.no`.
 4. Logg inn på `https://app.returapp.no` (beviser `/api`-proxyen). Dev: brukerne øverst i `README.md`.
 5. Last opp et bilde i «Meld henting» (beviser 10 MB-grensen gjennom Traefik → nginx → API og lagring i MongoDB).
 6. `docker service ls` på Dokploy-verten → alle Returapp-tjenester `1/1`.
+7. `curl -I https://returapp.no/funksjoner` → 200 med sikkerhetshoder, `curl -I https://www.returapp.no/` → 301 til `https://returapp.no/`, `curl -I https://returapp.no/demo/app` → 200 med `X-Robots-Tag: noindex`.
 
 ## 6 · Teste imagene lokalt (samme oppsett som i Dokploy)
 
@@ -111,6 +119,10 @@ curl -fsS http://localhost:8080/ready
 docker build -f infra/web/Dockerfile -t returapp-web .
 docker run --rm -e API_UPSTREAM=http://host.docker.internal:8080 -p 8081:80 returapp-web
 # åpne http://localhost:8081
+
+docker build -f infra/nettside/Dockerfile -t returapp-nettside .
+docker run --rm -p 8082:80 returapp-nettside
+# åpne http://localhost:8082, eller: cd nettside && E2E_BASE_URL=http://localhost:8082 npm test
 ```
 
 `--read-only` viser med en gang om noe prøver å skrive til disk (alt skal ligge i MongoDB).
@@ -134,7 +146,8 @@ docker run --rm -e API_UPSTREAM=http://host.docker.internal:8080 -p 8081:80 retu
 
 ## 8 · Før prod-deploy
 
-- [ ] DNS for `api.returapp.no` og `app.returapp.no` peker på Dokploy-verten.
+- [ ] DNS for `api.returapp.no`, `app.returapp.no`, `returapp.no` og `www.returapp.no` peker på Dokploy-verten.
+- [ ] Postkassen `kontakt@returapp.no` finnes og leses (nettsiden lenker til den).
 - [ ] Egen prod-database og egen databasebruker (ikke dev-brukeren). Demo-brukerne i `README.md` finnes bare i dev.
 - [ ] `App__SeedDemo=false`, `App__BaseUrl=https://app.returapp.no`, `App__DevEndpoints` **ikke** satt.
 - [ ] Nye hemmeligheter for prod: `Jwt__Secret` (`openssl rand -hex 32`), Twilio, SMTP, VAPID (`-- vapid`).

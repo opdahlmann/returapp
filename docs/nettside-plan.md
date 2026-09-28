@@ -482,3 +482,24 @@ Gjort 28. september 2026, før planen ble sjekket inn.
 | Kontrast | WCAG 2-formelen i et Python-skript på alle tokenpar planen bruker | Tallene i N8. Ett par under 4,5:1: `--mu` på `--sf2` (4,3:1); regel lagt inn. |
 | Planens egne regler | `grep` | Ingen tankestreker i prosa (de to treffene er selve regelen, skrevet som kode). Ni seksjoner i kapittel 5, tre eyebrows, ti steg N1–N10 i rekkefølge, alle steg har «Gjør», «Filer», «Test», «Ferdig når» og «Innsjekk». |
 | Prototypen | `grep` i `Returapp-standalone.html` | Laster React, ReactDOM og Babel fra unpkg.com og fonter fra fonts.googleapis.com via `ext_resources`. Bekrefter at N1 er nødvendig for CSP med `script-src 'self'`. |
+
+---
+
+## 13. Gjennomføring, med avvik fra planen
+
+Gjort 28. september 2026 i ti innsjekk på `opd`, ett per steg, hvert testet før innsjekk. Avvikene («Endret») står her så planen og koden ikke spriker.
+
+| Steg | Innsjekk | Endret |
+|---|---|---|
+| N1 | `98ba86e` | Babel trengs ikke i det hele tatt: den eneste JSX-filen var `IOSDevice`, som ble tatt bort. Komponentklassen er vanlig JavaScript som runtime kjører med `new Function`. Kontrollen ble en Playwright-spec i `frontend/e2e/demo/` (prosjekt `demo`, `DEMO=1`), ikke et skript under `nettside/`, fordi `openPrototype`, skjermkatalogen og pixelmatch-porten ligger der: 14 rotskjermer × 2 temaer innenfor 1 %, ingen forespørsler ut. Prototypens `?theme=` leses i tillegg av komponenten. |
+| N2 | `92b25de` | Fontene kopieres fra `frontend/public/fonts/` av `skript/kopier-inn.mjs` i stedet for Astros Fonts API (samme filer som appen, null konfig). Astro 7 kjører `astro dev` og `astro preview` som daemoner (`astro dev stop`). |
+| N3 | `431cecb` | Skjermbildeskriptet er Playwright-prosjektet `skjermbilder` i `frontend/` (`SKJERMBILDER=1`), startet fra `npm run skjermbilder` i `nettside/`, fordi `webServer`, `loginAs` og `screens.ts` ligger der. 12 skjermer × 2 temaer, 1206×2622. |
+| N4 | `d986ffb` | `<Picture>` kan ikke velge kilde per tema; `Telefon.astro` bruker `getImage()` og et håndskrevet `<picture>` med `<source media>`. Bare WebP (AVIF gir lite på skjermbilder og koster byggetid). Tokens leses rett fra `../frontend/src/tokens.css` med `vite.server.fs.allow: ['..']`. |
+| N5 | `7985c36` | Nettleseren klager på `{{ routePoints }}` i prototypens `<polyline>` før runtime fyller den inn, i den opprinnelige bundlen også; testene tillater akkurat den meldingen. Demo-dokumentet trenger `'unsafe-eval'` i CSP (runtime lager komponenten med `new Function`); nginx velger CSP per adresse med en `map`, så resten av siden er uten. |
+| N6 | `1c2b205` | `Seo.astro` ble skrevet ferdig her (FAQPage, BreadcrumbList, SoftwareApplication, OG) fordi sidene trengte propsene for typesjekk. Ny liten `Utsnitt.astro` for bildeutsnitt i bentoen; brede celler har tekst til venstre og telefonutsnitt til høyre. `.flate`-regelen i `global.css` gir dempet tekst og lenker nok kontrast på `--sf2`. |
+| N7 | `98538a2` | Som planlagt. OG-bildene rendres fra `src/og/mal.html` med appens font og telefonrammen. |
+| N8 | `f81f50d` | Playwright kjører mot `skript/server.mjs` (25 linjer, samme regler som nginx: `$uri`, `$uri.html`, 404 med status, gzip) fordi `astro preview` er en daemon. Lighthouse mot den: 100/100/100/100 mobil og desktop, LCP 1,7 s mobil (H1, simulert Slow 4G; planens mål var 1,5 s), CLS 0, TBT 0, 179 kB. CSS inlines ved bygg. |
+| N9 | `2fcd5ea` | `nginx-unprivileged` som `infra/web/`. `try_files` gjør `$uri` om til `/demo/app.html`, så map-reglene matcher begge stavemåter. CI-jobben filtrerer på endringer med `git diff` mot `github.event.before`/PR-basen (jobbnivå har ikke `paths`). 21 tester grønne mot imaget. |
+| N10 | se git | `README.md`, `DEPLOY.md` (§ 1, 3, 4, 5, 6, 8) og `IMPLEMENTERINGSPLAN.md` (fase 14, 7.5). Lenken fra appens innloggingsskjerm og fra kodetank.no er ikke gjort; de er egne innsjekk (`app:` og repoet `kodetank-no`). |
+
+Gjenstår for eieren: svarene i kapittel 1, DNS for `returapp.no`, `www` og `dev`, de to Dokploy-appene, postkassen `kontakt@returapp.no`, Search Console og Bing, lenke fra kodetank.no.

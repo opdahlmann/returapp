@@ -24,7 +24,8 @@ Enkel retur og gjenbruk fra byggeplassen. Angular 22 PWA + .NET 10 Minimal API +
 
 - Design (fasit): `docs/design/Returapp-standalone.html`
 - Plan: `IMPLEMENTERINGSPLAN.md`
-- Publisering (Dokploy): `DEPLOY.md` – app på https://app.returapp.no (dev: https://dev-app.returapp.no), API på https://api.returapp.no (dev: https://dev-api.returapp.no)
+- Nettside (returapp.no): `nettside/` (Astro), plan og beslutninger i `docs/nettside-plan.md`
+- Publisering (Dokploy): `DEPLOY.md` – app på https://app.returapp.no (dev: https://dev-app.returapp.no), API på https://api.returapp.no (dev: https://dev-api.returapp.no), nettside på https://returapp.no (dev: https://dev.returapp.no)
 
 ## Kom i gang
 
@@ -69,3 +70,13 @@ docker run --rm --read-only --tmpfs /tmp --env-file .env.development -p 8080:808
 ```
 
 `.env.*`-filer er ignorert av git og skal aldri sjekkes inn. Appen skriver aldri til lokal disk. Alle filer ligger i MongoDB.
+
+Nettsiden (returapp.no, Astro, ingen backend):
+
+```sh
+npm --prefix nettside install
+npm --prefix nettside run dev      # http://localhost:4321
+npm --prefix nettside run sjekk    # bygg, sjekk av dist/ og Playwright mot dist/
+```
+
+Demoen på nettsiden er prototypen pakket ut til `docs/design/Returapp-demo.html` (`node nettside/skript/demo-pakk-ut.mjs`), og skjermbildene tas av appen med `npm --prefix nettside run skjermbilder`. Se `nettside/README.md`.
