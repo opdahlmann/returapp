@@ -93,3 +93,50 @@ jobs:
             frontend/playwright-report
             frontend/test-results
           retention-days: 14
+
+  # Nettsiden (returapp.no): bygg, sjekk av dist, Playwright mot dist og mot det ferdige imaget. Kjører bare når noe nettsiden bruker er endret.
+  nettside:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Endret noe nettsiden bruker?
+        id: endret
+        run: |
+          if [ "${{ github.event_name }}" = pull_request ]; then BASE="${{ github.event.pull_request.base.sha }}"; else BASE="${{ github.event.before }}"; fi
+          if ! git cat-file -e "$BASE" 2>/dev/null || ! git diff --quiet "$BASE" HEAD -- nettside docs/design/Returapp-demo.html frontend/src/tokens.css frontend/public/fonts frontend/public/icons infra/nettside .dockerignore .github/workflows/ci.yml; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Ingen endringer for nettsiden, hopper over"; echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-node@v4
+        if: steps.endret.outputs.run == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: nettside/package-lock.json
+      - name: Bygg og sjekk dist
+        if: steps.endret.outputs.run == 'true'
+        working-directory: nettside
+        run: |
+          npm ci
+          npm run build
+          node skript/sjekk-dist.mjs
+          npx playwright install --with-deps chromium
+          npm test
+      - name: Docker-image og tester mot det
+        if: steps.endret.outputs.run == 'true'
+        working-directory: nettside
+        run: |
+          docker build -f ../infra/nettside/Dockerfile -t returapp-nettside ..
+          docker run -d --name nettside -p 8082:80 returapp-nettside
+          for i in $(seq 1 30); do curl -sf http://localhost:8082/ >/dev/null && break; sleep 1; done
+          curl -sI http://localhost:8082/funksjoner.html | grep -q "301" && curl -sI http://localhost:8082/demo/app | grep -qi "x-robots-tag: noindex"
+          E2E_BASE_URL=http://localhost:8082 npm test
+      - uses: actions/upload-artifact@v4
+        if: failure() && steps.endret.outputs.run == 'true'
+        with:
+          name: nettside-playwright
+          path: nettside/test-results
+          retention-days: 14
