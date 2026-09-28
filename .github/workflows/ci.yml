@@ -105,7 +105,7 @@ jobs:
         id: endret
         run: |
           if [ "${{ github.event_name }}" = pull_request ]; then BASE="${{ github.event.pull_request.base.sha }}"; else BASE="${{ github.event.before }}"; fi
-          if ! git cat-file -e "$BASE" 2>/dev/null || ! git diff --quiet "$BASE" HEAD -- nettside docs/design/Returapp-demo.html frontend/src/tokens.css frontend/public/fonts frontend/public/icons infra/nettside .dockerignore .github/workflows/ci.yml; then
+          if ! git cat-file -e "$BASE" 2>/dev/null || ! git diff --quiet "$BASE" HEAD -- nettside docs/design/Returapp-standalone.html frontend/src/tokens.css frontend/public/fonts frontend/public/icons infra/nettside .dockerignore .github/workflows/ci.yml; then
             echo "run=true" >> "$GITHUB_OUTPUT"
           else
             echo "Ingen endringer for nettsiden, hopper over"; echo "run=false" >> "$GITHUB_OUTPUT"

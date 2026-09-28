@@ -4,7 +4,7 @@ Statisk produktside for Returapp, bygget med Astro uten rammeverk i nettleseren.
 
 - Kjøre: `npm install` og `npm run dev` (port 4321). Krever Node 22.12 eller nyere.
 - Bygge: `npm run build` gir `dist/`. `npm run sjekk` bygger, kontrollerer `dist/` (`skript/sjekk-dist.mjs`) og kjører Playwright (`tests/`, mot `skript/server.mjs`, som serverer `dist/` med samme regler som nginx).
-- Fonter, ikoner og demoen kopieres inn fra `frontend/` og `docs/design/` av `skript/kopier-inn.mjs` før dev og bygg. Demoen lages av `skript/demo-pakk-ut.mjs` fra prototypen.
+- Fonter, ikoner og demoen kopieres inn fra `frontend/` og `docs/design/` av `skript/kopier-inn.mjs` før dev og bygg. Demoen er designprototypen `docs/design/Returapp-standalone.html` uendret (bare tittel, `lang` og `noindex` byttes i kopien), servert som `/demo/app` og åpnet i egen fane.
 - Skjermbildene i `src/assets/skjermbilder/` er tatt av appen med `npm run skjermbilder` (krever API og `ng serve` lokalt, Playwright starter dem selv).
 - Delingsbildene i `public/og/` lages av `node skript/og.mjs` når titler endres.
 - Drift: `infra/nettside/Dockerfile` og `infra/nettside/nginx.conf`, se `DEPLOY.md`.

@@ -79,4 +79,4 @@ npm --prefix nettside run dev      # http://localhost:4321
 npm --prefix nettside run sjekk    # bygg, sjekk av dist/ og Playwright mot dist/
 ```
 
-Demoen på nettsiden er prototypen pakket ut til `docs/design/Returapp-demo.html` (`node nettside/skript/demo-pakk-ut.mjs`), og skjermbildene tas av appen med `npm --prefix nettside run skjermbilder`. Se `nettside/README.md`.
+Demoen på nettsiden er designprototypen `docs/design/Returapp-standalone.html` uendret, servert som `/demo/app` i egen fane, og skjermbildene tas av appen med `npm --prefix nettside run skjermbilder`. Se `nettside/README.md`.

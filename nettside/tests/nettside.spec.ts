@@ -10,7 +10,7 @@ function overvaak(page: Page, base: string) {
   const eksterne: string[] = [];
   page.on('pageerror', (e) => feil.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !KJENT.test(m.text())) feil.push(m.text()); });
-  page.on('request', (r) => { if (!r.url().startsWith(base) && !r.url().startsWith('data:')) eksterne.push(r.url()); });
+  page.on('request', (r) => { if (!/^(data|blob):/.test(r.url()) && !r.url().startsWith(base)) eksterne.push(r.url()); });
   return { feil, eksterne };
 }
 
@@ -62,18 +62,21 @@ test('FAQ åpner og lukker', async ({ page }) => {
   await expect(forste).not.toHaveAttribute('open', '');
 });
 
-test('demoen laster i iframe og innloggingen virker', async ({ page, baseURL }) => {
-  const { feil, eksterne } = overvaak(page, baseURL!);
+test('demoen åpner i egen fane og innloggingen virker', async ({ page, baseURL }) => {
   await page.goto('/demo');
-  await page.getByRole('button', { name: 'Prøv demoen' }).click();
-  const f = page.frameLocator('iframe[title="Returapp-demo"]');
-  await f.locator('input[placeholder="Mobilnummer"]').fill('95432100');
-  await f.getByText('Send meg kode på SMS').click();
-  await f.locator('input[placeholder="••••••"]').fill('123456');
-  await f.getByText('Bekreft').click();
-  await f.getByText('Hvem er du i dag?').waitFor();
-  await f.getByText('Byggeplass / giver').click();
-  await f.getByText('Hei, Jonas').waitFor();
+  const lenke = page.getByRole('link', { name: 'Prøv demoen' }).first();
+  await expect(lenke).toHaveAttribute('target', '_blank');
+  await expect(lenke).toHaveAttribute('href', '/demo/app');
+  const { feil, eksterne } = overvaak(page, baseURL!);
+  await page.goto('/demo/app');
+  await expect(page).toHaveTitle('Returapp · Demo');
+  await page.locator('input[placeholder="Mobilnummer"]').fill('95432100');
+  await page.getByText('Send meg kode på SMS').click();
+  await page.locator('input[placeholder="••••••"]').fill('123456');
+  await page.getByText('Bekreft').click();
+  await page.getByText('Hvem er du i dag?').waitFor();
+  await page.getByText('Byggeplass / giver').click();
+  await page.getByText('Hei, Jonas').waitFor();
   expect(feil).toEqual([]);
   expect(eksterne).toEqual([]);
 });

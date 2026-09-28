@@ -80,7 +80,7 @@ Tjenestenavnet genereres av Dokploy. Finn det i API-appens **Logs**-fane: contai
 
 ### Nettside (`returapp-dev-nettside` / `returapp-nettside`)
 
-Ingen variabler. Bygget låner `frontend/src/tokens.css`, `frontend/public/fonts`, `frontend/public/icons` og `docs/design/Returapp-demo.html` fra repo-roten, derfor Build Context `.`.
+Ingen variabler. Bygget låner `frontend/src/tokens.css`, `frontend/public/fonts`, `frontend/public/icons` og `docs/design/Returapp-standalone.html` (demoen) fra repo-roten, derfor Build Context `.`.
 
 ## 4 · Oppsett steg for steg
 

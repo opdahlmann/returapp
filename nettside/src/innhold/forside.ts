@@ -9,7 +9,7 @@ export const hero = {
 export const demo = {
   eyebrow: 'Demo',
   h2: 'Se den før dere bestemmer dere',
-  tekst: 'Fiktive firma og hentinger. Hvilken som helst kode logger inn. Ingenting lagres.',
+  tekst: 'Åpner i en egen fane. Fiktive firma og hentinger, hvilken som helst kode logger inn, ingenting lagres.',
 };
 
 export const slik = {

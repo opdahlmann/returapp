@@ -1,10 +1,10 @@
 ---
 // Én seksjon: bredde, avstand og valgfritt mørkt bånd i innloggingspaletten.
-interface Props { id?: string; mork?: boolean; class?: string; stram?: boolean }
-const { id, mork = false, class: klasse = '', stram = false } = Astro.props;
+interface Props { id?: string; mork?: boolean; class?: string; stram?: boolean; /** Full avstand over også når forrige seksjon er lys, og mer luft under overskriften. */ luft?: boolean }
+const { id, mork = false, class: klasse = '', stram = false, luft = false } = Astro.props;
 ---
 
-<section id={id} class:list={['sek', { mork, stram }, klasse]}>
+<section id={id} class:list={['sek', { mork, stram, luft }, klasse]}>
   <div class="wrap"><slot /></div>
 </section>
 
@@ -12,6 +12,8 @@ const { id, mork = false, class: klasse = '', stram = false } = Astro.props;
   .sek { padding-block: var(--sek); }
   .stram { padding-block: calc(var(--sek) * .6); }
   .sek + .sek:not(.mork) { padding-top: 0; }
+  .sek + .sek.luft { padding-top: var(--sek); }
+  .luft :global(h2:first-child) { margin-bottom: 40px; }
   .mork { background: var(--mork); color: var(--mork-tekst); }
   .mork :global(.dempet) { color: var(--mork-dempet); }
 </style>

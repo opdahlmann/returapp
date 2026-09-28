@@ -7,5 +7,5 @@
 **/.angular
 **/dist
 docs
-!docs/design/Returapp-demo.html
+!docs/design/Returapp-standalone.html
 **/.DS_Store

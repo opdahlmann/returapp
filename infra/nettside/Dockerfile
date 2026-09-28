@@ -10,7 +10,7 @@ RUN npm ci
 COPY frontend/src/tokens.css /app/frontend/src/tokens.css
 COPY frontend/public/fonts /app/frontend/public/fonts
 COPY frontend/public/icons /app/frontend/public/icons
-COPY docs/design/Returapp-demo.html /app/docs/design/Returapp-demo.html
+COPY docs/design/Returapp-standalone.html /app/docs/design/Returapp-standalone.html
 COPY nettside/astro.config.mjs nettside/tsconfig.json ./
 COPY nettside/public public
 COPY nettside/src src
