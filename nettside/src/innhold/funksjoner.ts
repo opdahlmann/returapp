@@ -1,5 +1,5 @@
 // Funksjoner per rolle. Kilde: IMPLEMENTERINGSPLAN.md 1.4 til 1.6 og endepunktene i backend/.
-export const tittel = 'Funksjoner: melding, dekning, børs, rute, kvittering';
+export const tittel = 'Funksjoner: melding, børs, rute, kvittering';
 export const beskrivelse = 'Fem steg for giver, innboks og oppdragsbørs for hentefirma, dagens stopp og henting med bilde for sjåfør, kvittering med kg og CO₂-anslag.';
 
 export const h1 = 'Fire roller, én henting';

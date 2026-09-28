@@ -12,7 +12,8 @@
     "preview": "astro preview",
     "check": "astro check",
     "skjermbilder": "cd ../frontend && SKJERMBILDER=1 npx playwright test --project skjermbilder",
-    "sjekk": "npm run build && node skript/sjekk-dist.mjs && playwright test"
+    "sjekk": "npm run build && node skript/sjekk-dist.mjs && playwright test",
+    "test": "playwright test"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.10",

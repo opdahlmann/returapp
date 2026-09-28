@@ -7,7 +7,7 @@ import { defineConfig } from 'astro/config';
 export default defineConfig({
   site: 'https://returapp.no',
   trailingSlash: 'never',
-  build: { format: 'file' }, // /funksjoner.html → nginx serverer den som /funksjoner, som canonical
+  build: { format: 'file', inlineStylesheets: 'always' }, // /funksjoner.html → nginx serverer den som /funksjoner, som canonical. CSS inline: én forespørsel mindre før første tegning.
   prefetch: { prefetchAll: true, defaultStrategy: 'hover' },
   integrations: [sitemap({ filter: (page) => !page.endsWith('/404') })],
   // Tokens leses rett fra appen (frontend/src/tokens.css); dev-serveren må få lov til å lese utenfor nettside/.

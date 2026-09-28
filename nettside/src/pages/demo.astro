@@ -22,7 +22,7 @@ const roller = [
       <div class="roller">
         <h2>Verdt å prøve</h2>
         {roller.map(([rolle, tekst]) => (
-          <div class="rolle">
+          <div class="rolle flate">
             <h3>{rolle}</h3>
             <p class="dempet">{tekst}</p>
           </div>
@@ -37,7 +37,7 @@ const roller = [
   .ingress { margin-top: 16px; }
   .oppsett { display: grid; gap: 40px; align-items: start; }
   .roller { display: grid; gap: 20px; }
-  .rolle { padding: 18px 20px; border-radius: var(--r-kort); background: var(--sf2); }
+  .rolle { padding: 18px 20px; border-radius: var(--r-kort); }
   .rolle p { margin-top: 4px; }
   @media (min-width: 900px) { .oppsett { grid-template-columns: auto 1fr; gap: 64px; } .roller { padding-top: 12px; } }
 </style>

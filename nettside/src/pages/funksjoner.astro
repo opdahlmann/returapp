@@ -36,7 +36,7 @@ const utenBilde = roller.filter((r) => !r.bilde);
   <Seksjon>
     <div class="to">
       {utenBilde.map((r) => (
-        <div class="kort">
+        <div class="kort flate">
           <h2>{r.navn}</h2>
           <ul class="liste">{r.punkter.map((p) => <li>{p}</li>)}</ul>
         </div>
@@ -83,7 +83,7 @@ const utenBilde = roller.filter((r) => !r.bilde);
     .speil > div { order: 2; }
   }
   .to { display: grid; gap: 20px; }
-  .kort { padding: 28px; border-radius: var(--r-kort); background: var(--sf2); }
+  .kort { padding: 28px; border-radius: var(--r-kort); }
   @media (min-width: 768px) { .to { grid-template-columns: 1fr 1fr; } }
   .chips { list-style: none; margin: 20px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
   .chips li { height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border-radius: 999px; border: 1.5px solid var(--bd); background: var(--sf); font-weight: 600; }

@@ -75,7 +75,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
     <h2>{forHvem.h2}</h2>
     <div class="to">
       {forHvem.kort.map((k) => (
-        <div class="kort">
+        <div class="kort flate">
           <h3>{k.tittel}</h3>
           <p class="dempet">{k.tekst}</p>
           <div class="kort-bunn">
@@ -180,7 +180,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
 
   /* 5 For hvem: to like kort */
   .to { display: grid; gap: 20px; }
-  .kort { padding: 28px; border-radius: var(--r-kort); background: var(--sf2); display: flex; flex-direction: column; gap: 10px; }
+  .kort { padding: 28px; border-radius: var(--r-kort); display: flex; flex-direction: column; gap: 10px; }
   .kort h3 { font-size: 24px; }
   .kort-bunn { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; margin-top: 12px; }
   .pil { font-weight: 700; text-decoration: none; }

@@ -60,6 +60,10 @@ a, button, summary { touch-action: manipulation; cursor: pointer; }
 .dempet { color: var(--mu); }
 .ingress { font-size: 19px; line-height: 1.45; max-width: 36ch; }
 .prosa { max-width: 65ch; }
+/* Tonet flate (--sf2): --mu gir bare 4,3:1 her, så dempet tekst og lenker bruker --tx med opacity og --tint-tx. */
+.flate { background: var(--sf2); }
+.flate .dempet { color: var(--tx); opacity: .8; }
+.flate a { color: var(--tint-tx); }
 
 .wrap { width: min(100% - 2 * var(--gutter), var(--maks)); margin-inline: auto; }
 .skjul-visuelt { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
