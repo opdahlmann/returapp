@@ -5,7 +5,6 @@ import Hero from '../components/Hero.astro';
 import Karusell from '../components/Karusell.astro';
 import Knapp from '../components/Knapp.astro';
 import Lysmork from '../components/Lysmork.astro';
-import Reveal from '../components/Reveal.astro';
 import Seksjon from '../components/Seksjon.astro';
 import Utsnitt from '../components/Utsnitt.astro';
 import { APPLY_URL, APP_URL } from '../consts';
@@ -27,24 +26,24 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
 
   <!-- 3 Demo, med lys/mørk-glider -->
   <Seksjon id="demo" eyebrow={demo.eyebrow} h2={demo.h2} ingress={demo.tekst}>
-    <Reveal>
+    <div data-reveal>
       <Lysmork lys={bilde('light', 'giver-home')} mork={bilde('dark', 'giver-home')} alt="Giverens hjem-skjerm i lys og mørk modus" bredde={340} />
       <p class="midt dempet liten glider-tekst">Dra i glideren. Appen følger telefonens lyse eller mørke modus.</p>
       <div class="knapper midt"><Knapp href="/demo/app.html" target="_blank">Prøv demoen</Knapp></div>
-    </Reveal>
+    </div>
   </Seksjon>
 
   <!-- 4 Funksjoner: seks kort -->
   <Seksjon h2={bento.h2}>
     <div class="rute">
       {bento.celler.map((c, i) => (
-        <Reveal i={i} class:list={['kort', { bred: c.bred }]}>
+        <div data-reveal style={`--i:${i}`} class:list={['kort', { bred: c.bred }]}>
           {c.bilde && <Utsnitt lys={bilde('light', c.bilde)} mork={bilde('dark', c.bilde)} alt={c.alt ?? ''} hoyde={c.bred ? 240 : 200} />}
           <div class="kort-tekst">
             <h3>{c.tittel}</h3>
             <p class="dempet">{c.tekst}</p>
           </div>
-        </Reveal>
+        </div>
       ))}
     </div>
   </Seksjon>
@@ -53,14 +52,14 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   <Seksjon eyebrow={forHvem.eyebrow} h2={forHvem.h2}>
     <div class="to">
       {forHvem.kort.map((k, i) => (
-        <Reveal i={i} class:list={['flis', i === 0 ? 'tonet' : 'mork']}>
+        <div data-reveal style={`--i:${i}`} class:list={['flis', i === 0 ? 'tonet' : 'mork']}>
           <h3>{k.tittel}</h3>
           <p class="dempet">{k.tekst}</p>
           <div class="flis-bunn">
             <Knapp href={k.href}>{k.cta}</Knapp>
             <a class="pil" href={k.lenke}>{k.lenketekst} <span aria-hidden="true">→</span></a>
           </div>
-        </Reveal>
+        </div>
       ))}
     </div>
   </Seksjon>
@@ -69,35 +68,35 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   <Seksjon eyebrow={miljo.eyebrow} h2={miljo.h2}>
     <div class="tall-rad">
       {miljo.tall.map((t, i) => (
-        <Reveal i={i} class="tall-kort midt">
+        <div data-reveal style={`--i:${i}`} class="tall-kort midt">
           <div class="tall verdi">{t.verdi}</div>
           <div class="dempet">{t.etikett}</div>
-        </Reveal>
+        </div>
       ))}
     </div>
-    <Reveal class="prosa miljo-tekst midt">{miljo.tekst.map((t) => <p class="dempet">{t}</p>)}</Reveal>
+    <div data-reveal class="prosa miljo-tekst midt">{miljo.tekst.map((t) => <p class="dempet">{t}</p>)}</div>
   </Seksjon>
 
   <!-- 7 Ærlig snakk -->
   <Seksjon>
-    <Reveal class="prosa aerlig">
+    <div data-reveal class="prosa aerlig">
       <h2>{aerlig.h2}</h2>
       <ul class="liste">{aerlig.punkter.map((p) => <li>{p}</li>)}</ul>
-    </Reveal>
+    </div>
   </Seksjon>
 
   <!-- 8 FAQ -->
   <Seksjon h2="Spørsmål og svar">
-    <Reveal><Faq sporsmal={faq} /></Reveal>
+    <div data-reveal><Faq sporsmal={faq} /></div>
   </Seksjon>
 
   <!-- 9 CTA -->
   <Seksjon stram>
-    <Reveal class="flis mork cta midt">
+    <div data-reveal class="flis mork cta midt">
       <h2>{cta.h2}</h2>
       <p class="ingress dempet">{cta.tekst}</p>
       <div class="knapper"><Knapp href={APP_URL}>Meld henting</Knapp><Knapp href={APPLY_URL} variant="sekundar">Bli hentefirma</Knapp></div>
-    </Reveal>
+    </div>
   </Seksjon>
 </Base>
 
@@ -105,14 +104,15 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   .knapper { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 28px; }
   .glider-tekst { margin-top: 24px; }
 
-  /* 4 Funksjoner: 6 kort, 2 + 3 + 1 på desktop */
+  /* 4 Funksjoner: 6 kort, 2 + 3 + 1 på desktop. Brede kort viser skjermbildet i naturlig bredde (402 px) til høyre, aldri strukket. */
   .rute { display: grid; gap: 20px; }
   @media (min-width: 768px) {
     .rute { grid-template-columns: repeat(3, 1fr); }
-    .rute :global(.bred) { grid-column: span 2; }
-    .rute :global(.kort:nth-child(6)) { grid-column: span 3; flex-direction: row-reverse; }
-    .rute :global(.kort:nth-child(6) .utsnitt) { width: 402px; height: auto; flex: none; }
-    .rute :global(.kort:nth-child(6) .kort-tekst) { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px; }
+    .rute .bred { grid-column: span 2; flex-direction: row-reverse; }
+    .rute .kort:nth-child(6) { grid-column: span 3; }
+    .rute .bred :global(.utsnitt) { width: 402px; max-width: 55%; height: auto; min-height: 300px; flex: none; }
+    .rute .bred :global(.utsnitt img) { object-position: top center; }
+    .rute .bred .kort-tekst { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 36px; }
   }
 
   /* 5 For hvem: to fliser, en tonet og en mørk */

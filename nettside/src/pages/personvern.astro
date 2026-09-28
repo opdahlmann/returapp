@@ -1,5 +1,4 @@
 ---
-import Reveal from '../components/Reveal.astro';
 import Seksjon from '../components/Seksjon.astro';
 import { CONTACT_EMAIL } from '../consts';
 import Base from '../layouts/Base.astro';
@@ -26,12 +25,12 @@ const appen = [
       <h2>Appen</h2>
       <dl>
         {appen.map(([dt, dd], i) => (
-          <Reveal i={i % 3} class="kort punkt">
+          <div data-reveal style={`--i:${i % 3}`} class="kort punkt">
             <div class="kort-tekst">
               <dt>{dt}</dt>
               <dd class="dempet">{dd}</dd>
             </div>
-          </Reveal>
+          </div>
         ))}
       </dl>
     </div>

@@ -161,3 +161,31 @@ test('lys/mørk-glideren klipper det mørke bildet', async ({ page }) => {
   await inn.fill('80');
   await expect(page.locator('.lysmork .moerk')).toHaveCSS('clip-path', 'inset(0px 0px 0px 80%)');
 });
+
+// Layout på mobil og desktop: ingen vannrett rulling, alle bilder lastes når de rulles inn, alt innhold blir synlig, og
+// ingen tekstblokk er bredere enn skjermen (karusellbanen er unntatt, den skal rulles vannrett).
+for (const sti of SIDER) {
+  for (const [w, h] of [[390, 844], [1440, 900]] as const) {
+    test(`${sti} ved ${w} px: ingen overflow, alle bilder lastet, alt innhold synlig`, async ({ browser }) => {
+      const page = await browser.newPage({ viewport: { width: w, height: h } });
+      await page.goto(sti);
+      const H = await page.evaluate(() => document.documentElement.scrollHeight);
+      for (let y = 0; y < H; y += h / 2) {
+        await page.evaluate((y) => window.scrollTo(0, y), y);
+        await page.waitForTimeout(60);
+      }
+      await page.waitForLoadState('networkidle');
+      const r = await page.evaluate(() => ({
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        ulastet: [...document.images].filter((i) => !i.complete || i.naturalWidth === 0).map((i) => i.currentSrc || i.src),
+        skjult: [...document.querySelectorAll('[data-reveal]')].filter((e) => !e.classList.contains('er-synlig')).length,
+        brede: [...document.querySelectorAll('h1, h2, h3, p, li')].filter((e) => !e.closest('.spor') && e.getBoundingClientRect().right > innerWidth + 1).map((e) => e.textContent!.slice(0, 40)),
+      }));
+      expect(r.overflow, 'vannrett overflow').toBe(0);
+      expect(r.ulastet, 'bilder som ikke lastet').toEqual([]);
+      expect(r.skjult, 'reveal-elementer som aldri ble synlige').toBe(0);
+      expect(r.brede, 'tekst utenfor skjermen').toEqual([]);
+      await page.close();
+    });
+  }
+}

@@ -1,6 +1,5 @@
 ---
 import Demo from '../components/Demo.astro';
-import Reveal from '../components/Reveal.astro';
 import Seksjon from '../components/Seksjon.astro';
 import Base from '../layouts/Base.astro';
 
@@ -21,16 +20,16 @@ const roller = [
   </section>
   <Seksjon>
     <div class="oppsett">
-      <Reveal><Demo bredde={380} /></Reveal>
+      <div data-reveal><Demo bredde={380} /></div>
       <div class="roller">
         <h2>Verdt å prøve</h2>
         {roller.map(([rolle, tekst], i) => (
-          <Reveal i={i} class="kort rolle">
+          <div data-reveal style={`--i:${i}`} class="kort rolle">
             <div class="kort-tekst">
               <h3>{rolle}</h3>
               <p class="dempet">{tekst}</p>
             </div>
-          </Reveal>
+          </div>
         ))}
       </div>
     </div>

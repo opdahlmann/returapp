@@ -7,12 +7,13 @@ import Telefon from './Telefon.astro';
 interface Kort { verb: string; tekst: string; lys: ImageMetadata; mork: ImageMetadata; alt: string }
 interface Props { kort: Kort[]; navn: string }
 const { kort, navn } = Astro.props;
+// Hele banen glir inn samlet: kort utenfor skjermen ville ellers aldri fått innslipp før de ble dratt inn.
 ---
 
-<div class="karusell" data-karusell>
+<div class="karusell" data-karusell data-reveal>
   <div class="spor" role="region" aria-roledescription="karusell" aria-label={navn} tabindex="0">
     {kort.map((k, i) => (
-      <article class="kort kort-k" data-reveal style={`--i:${i}`}>
+      <article class="kort kort-k">
         <div class="kort-tekst">
           <h3>{k.verb}</h3>
           <p class="dempet">{k.tekst}</p>
@@ -113,9 +114,10 @@ const { kort, navn } = Astro.props;
 </script>
 
 <style>
-  .karusell { margin-inline: calc(-1 * var(--gutter)); }
+  /* Banen går helt ut til vinduskantene, kortene starter på innholdets venstre kant. */
+  .karusell { margin-inline: calc(50% - 50vw); }
   .spor {
-    display: flex; gap: 20px; padding: 8px var(--gutter) 32px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+    display: flex; gap: 20px; padding: 8px max(var(--gutter), calc(50vw - var(--maks) / 2)) 32px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
     cursor: grab; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch;
   }
   .spor::-webkit-scrollbar { display: none; }
@@ -128,7 +130,7 @@ const { kort, navn } = Astro.props;
   .kort-k h3 { font-size: 28px; letter-spacing: -.025em; }
   .tlf { display: flex; justify-content: center; padding: 20px 28px 0; max-height: 380px; overflow: hidden; margin-top: auto; }
   .tlf :global(.telefon) { box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, .14), 0 20px 50px -20px rgba(20, 30, 20, .5); }
-  .styring { display: flex; align-items: center; justify-content: space-between; padding-inline: var(--gutter); }
+  .styring { display: flex; align-items: center; justify-content: space-between; padding-inline: max(var(--gutter), calc(50vw - var(--maks) / 2)); }
   .prikker { display: flex; gap: 6px; }
   .prikker button { width: 28px; height: 28px; padding: 0; border: 0; background: transparent; display: grid; place-content: center; }
   .prikker button::before { content: ''; display: block; width: 8px; height: 8px; border-radius: 50%; background: var(--mu); opacity: .4; transition: transform var(--t-ui) var(--ease-out), opacity var(--t-ui) ease; }
@@ -137,10 +139,5 @@ const { kort, navn } = Astro.props;
   .pil { width: 44px; height: 44px; border-radius: 50%; display: grid; place-content: center; color: var(--tx); transition: transform var(--t-trykk) var(--ease-out), background-color var(--t-ui) ease; }
   .pil:active { transform: scale(.94); }
   @media (hover: hover) and (pointer: fine) { .pil:hover { background: var(--sf); } }
-  @media (min-width: 900px) {
-    .karusell { margin-inline: 0; }
-    .spor { padding-inline: 0; }
-    .styring { padding-inline: 0; }
-    .kort-k { flex-basis: 480px; }
-  }
+  @media (min-width: 900px) { .kort-k { flex-basis: 480px; } }
 </style>

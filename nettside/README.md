@@ -24,7 +24,8 @@ Nytt design etter Emil Kowalskis skills (`emil-design-eng`, `animate`, `apple-de
 - Toast (/kontakt): `@starting-style` inn nedenfra, ut samme vei, overganger ikke keyframes.
 - Statuslinjen på /funksjoner tegnes av rullingen med `animation-timeline: view()` der det finnes.
 - Trykk: alle knapper skalerer til .97 på 160 ms. Hover bare under `(hover: hover) and (pointer: fine)`. `prefers-reduced-motion`: bare fade, ingen fjærer, ingen vipp.
-- Tester i `tests/` dekker arket (dra og Escape), karusellen (dra med mus), fanene (klikk og piltast), glideren og FAQ.
+- Tester i `tests/` dekker arket (dra og Escape), karusellen (dra med mus), fanene (klikk og piltast), glideren og FAQ, og layout på 390 og 1440 px for hver side: ingen vannrett overflow, alle bilder lastet etter rulling, alt innslipp synlig, ingen tekst utenfor skjermen.
+- Innslipp (`data-reveal`) settes rett på elementene i sidene, ikke via en komponent: Astro gir ikke sidens scope-attributt til en komponents rotelement, så sidens stiler ville ikke truffet.
 
 ## Sjekkliste fra taste-skillen (harde regler, kapittel 4.7), gått gjennom 28. september 2026
 
