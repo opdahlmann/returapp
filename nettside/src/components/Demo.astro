@@ -1,0 +1,54 @@
+---
+import hjemLys from '../assets/skjermbilder/light/giver-home.png';
+import hjemMork from '../assets/skjermbilder/dark/giver-home.png';
+import Telefon from './Telefon.astro';
+
+// Demoen (den utpakkede prototypen) i telefonrammen. Plakatbilde til «Prøv demoen» klikkes; da lages iframen på stedet,
+// i samme tema som siden. «Start på nytt» laster den om igjen. Adressen er /demo/app (nginx finner app.html).
+interface Props { bredde?: number }
+const { bredde = 360 } = Astro.props;
+---
+
+<div class="demo">
+  <Telefon lys={hjemLys} mork={hjemMork} alt="" bredde={bredde}>
+    <button type="button" class="start" data-demo-start>Prøv demoen</button>
+  </Telefon>
+  <p class="verktoy">
+    <button type="button" class="lenke" data-demo-reset hidden>Start på nytt</button>
+    <a href="/demo/app" target="_blank" rel="noopener">Åpne i eget vindu</a>
+  </p>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.demo').forEach((demo) => {
+    const skjerm = demo.querySelector<HTMLElement>('.skjerm')!;
+    const start = demo.querySelector<HTMLButtonElement>('[data-demo-start]')!;
+    const reset = demo.querySelector<HTMLButtonElement>('[data-demo-reset]')!;
+    const src = () => `/demo/app?theme=${document.documentElement.dataset.theme ?? 'light'}`;
+    const last = () => {
+      skjerm.querySelector('iframe')?.remove();
+      const f = document.createElement('iframe');
+      f.src = src();
+      f.title = 'Returapp-demo';
+      f.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      skjerm.append(f);
+      demo.classList.add('aktiv');
+      reset.hidden = false;
+    };
+    start.addEventListener('click', last);
+    reset.addEventListener('click', last);
+  });
+</script>
+
+<style>
+  .demo { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .start { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); height: 54px; padding: 0 26px; border: 0; border-radius: var(--r-knapp); background: var(--pri); color: var(--pri-tx); font-weight: 800; font-size: 17px; box-shadow: 0 8px 24px rgba(0, 0, 0, .25); transition: transform var(--varighet-kort) var(--kurve); }
+  .start:hover { transform: translate(-50%, -50%) scale(1.03); }
+  .start:active { transform: translate(-50%, -50%) scale(.98); }
+  .demo :global(picture) { transition: opacity var(--varighet-inn) var(--kurve); }
+  .aktiv :global(picture), .aktiv .start { opacity: 0; pointer-events: none; }
+  .demo :global(iframe) { position: absolute; inset: 0; border: 0; }
+  .verktoy { display: flex; gap: 20px; font-size: 15px; }
+  .lenke { background: none; border: 0; padding: 0; color: var(--pri); text-decoration: underline; text-underline-offset: .15em; }
+  :global(.mork) .lenke, :global(.mork) .verktoy a { color: var(--mork-aksent); }
+</style>

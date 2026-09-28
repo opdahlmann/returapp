@@ -1,0 +1,43 @@
+---
+import Demo from '../components/Demo.astro';
+import Seksjon from '../components/Seksjon.astro';
+import Base from '../layouts/Base.astro';
+
+const roller = [
+  ['Byggeplass', 'Meld en henting: velg kategori, legg til bilder, si hvor mye og hvor det står.'],
+  ['Sjåfør', 'Se dagens stopp, ta et oppdrag fra børsen, og bekreft en henting med bilde og mengde.'],
+  ['Retur-admin', 'Tildel en ny henteordre til en sjåfør, legg en på børsen, og planlegg ruten.'],
+  ['Superbruker', 'Godkjenn hentefirmaet som venter, og se ordre uten dekning.'],
+];
+---
+
+<Base tittel="Prøv Returapp i nettleseren" beskrivelse="Klikk deg gjennom appen med fiktive data: meld en henting, ta oppdrag som sjåfør, tildel som hentefirma, godkjenn som superbruker. Ingenting lagres." sti="/demo">
+  <Seksjon>
+    <div class="topp">
+      <h1>Prøv den før dere bestemmer dere</h1>
+      <p class="ingress dempet">Fiktive firma og hentinger. Hvilken som helst kode logger inn, og rollen velges på «Hvem er du i dag?». Ingenting lagres.</p>
+    </div>
+    <div class="oppsett">
+      <Demo bredde={380} />
+      <div class="roller">
+        <h2>Verdt å prøve</h2>
+        {roller.map(([rolle, tekst]) => (
+          <div class="rolle">
+            <h3>{rolle}</h3>
+            <p class="dempet">{tekst}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </Seksjon>
+</Base>
+
+<style>
+  .topp { max-width: 720px; margin-bottom: 40px; }
+  .ingress { margin-top: 16px; }
+  .oppsett { display: grid; gap: 40px; align-items: start; }
+  .roller { display: grid; gap: 20px; }
+  .rolle { padding: 18px 20px; border-radius: var(--r-kort); background: var(--sf2); }
+  .rolle p { margin-top: 4px; }
+  @media (min-width: 900px) { .oppsett { grid-template-columns: auto 1fr; gap: 64px; } .roller { padding-top: 12px; } }
+</style>

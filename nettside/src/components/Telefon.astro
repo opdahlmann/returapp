@@ -23,15 +23,14 @@ const sizes = `(min-width: 768px) ${bredde}px, 80vw`;
 
 <div class:list={['telefon', klasse]} style={`--bredde:${bredde}px`}>
   <div class="skjerm">
-    {l ? (
+    {l && (
       <picture>
         {m && <source media="(prefers-color-scheme: dark)" srcset={m.srcSet.attribute} sizes={sizes} type="image/webp" />}
         <source srcset={l.srcSet.attribute} sizes={sizes} type="image/webp" />
         <img src={l.src} width={402} height={874} alt={alt} loading={eager ? 'eager' : 'lazy'} fetchpriority={eager ? 'high' : undefined} decoding="async" />
       </picture>
-    ) : (
-      <slot />
     )}
+    <slot />
   </div>
 </div>
 

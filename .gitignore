@@ -13,7 +13,7 @@ test-results/
 # nettside (Astro): bygg, cache og det kopier-inn.mjs låner fra frontend/ og docs/
 nettside/node_modules/
 nettside/dist/
-nettside/.astro/
+.astro/
 nettside/public/demo/
 nettside/public/fonts/
 nettside/public/icons/
