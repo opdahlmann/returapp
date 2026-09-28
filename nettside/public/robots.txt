@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /demo/app
+
+Sitemap: https://returapp.no/sitemap-index.xml

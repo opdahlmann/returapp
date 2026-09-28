@@ -1,0 +1,33 @@
+<!doctype html>
+<!-- Mal for delingsbilder (1200×630). Rendres av skript/og.mjs med ?tittel=…&bilde=… -->
+<html lang="nb">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face { font-family: 'Figtree'; font-weight: 300 900; src: url('../../../frontend/public/fonts/figtree-latin.woff2') format('woff2'); }
+      html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+      body { background: #1B4D2B; color: #fff; font-family: 'Figtree', system-ui, sans-serif; display: flex; }
+      .tekst { flex: 1; padding: 72px 0 72px 80px; display: flex; flex-direction: column; justify-content: space-between; }
+      .logo { font-size: 40px; font-weight: 800; letter-spacing: -.03em; }
+      .logo em { font-style: normal; color: #B7E39B; }
+      h1 { margin: 0; font-size: 64px; line-height: 1.08; font-weight: 800; letter-spacing: -.02em; max-width: 640px; }
+      .under { font-size: 24px; color: rgba(255, 255, 255, .75); }
+      .telefon { width: 330px; margin: 72px 80px -260px 40px; padding: 8px; border-radius: 44px; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .18); box-shadow: 0 30px 80px rgba(0, 0, 0, .35); align-self: flex-start; }
+      .skjerm { border-radius: 36px; overflow: hidden; aspect-ratio: 402 / 874; background: #F3F4EF; }
+      .skjerm img { width: 100%; display: block; }
+    </style>
+  </head>
+  <body>
+    <div class="tekst">
+      <div class="logo">Retur<em>app</em></div>
+      <h1 id="tittel"></h1>
+      <div class="under">returapp.no</div>
+    </div>
+    <div class="telefon"><div class="skjerm"><img id="bilde" alt="" /></div></div>
+    <script>
+      const q = new URLSearchParams(location.search);
+      document.getElementById('tittel').textContent = q.get('tittel') || '';
+      document.getElementById('bilde').src = q.get('bilde') || '';
+    </script>
+  </body>
+</html>
