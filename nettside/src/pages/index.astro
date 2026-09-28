@@ -3,6 +3,7 @@ import type { ImageMetadata } from 'astro';
 import Demo from '../components/Demo.astro';
 import Eyebrow from '../components/Eyebrow.astro';
 import Faq from '../components/Faq.astro';
+import Hero from '../components/Hero.astro';
 import Knapp from '../components/Knapp.astro';
 import Reveal from '../components/Reveal.astro';
 import Seksjon from '../components/Seksjon.astro';
@@ -18,16 +19,7 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
 
 <Base tittel="Returapp: enkel retur og gjenbruk fra byggeplassen" beskrivelse="Meld materialer som skal ut i fem steg. Et hentefirma som dekker kommunen får beskjed, henter og bekrefter med bilde. Gratis for byggeplassen." sti="" faq={faq} app>
   <!-- 1 Hero -->
-  <Seksjon mork class="hero-sek">
-    <div class="hero">
-      <div>
-        <h1>{hero.h1}</h1>
-        <p class="ingress dempet">{hero.ingress}</p>
-        <div class="knapper"><Knapp href={APP_URL}>Meld henting</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
-      </div>
-      <div class="hero-telefon"><Telefon lys={bilde('light', 'giver-home')} mork={bilde('dark', 'giver-home')} alt="Giverens hjem-skjerm med knappen Meld henting og kategoriene" eager /></div>
-    </div>
-  </Seksjon>
+  <Hero h1={hero.h1} ingress={hero.ingress} primar={{ tekst: 'Meld henting', href: APP_URL }} lys={bilde('light', 'giver-home')} mork={bilde('dark', 'giver-home')} alt="Giverens hjem-skjerm med knappen Meld henting og kategoriene" />
 
   <!-- 2 Demo -->
   <Seksjon id="demo">
@@ -131,20 +123,6 @@ const bilde = (tema: 'light' | 'dark', navn: string) => alle[`../assets/skjermbi
   .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
   .midt { text-align: center; }
   .midt .eyebrow { margin-inline: auto; }
-
-  /* 1 Hero: telefonen glir inn ved lasting; på mobil vises bare øverste del, så knappene ikke havner under folden. */
-  .hero-sek { padding-block: 56px 0; }
-  .hero { display: grid; gap: 40px; align-items: center; }
-  .hero .ingress { margin-top: 20px; }
-  .hero-telefon { max-height: 300px; overflow: hidden; justify-self: center; }
-  .hero-telefon :global(.telefon) { animation: inn var(--varighet-inn) var(--kurve) both; }
-  @keyframes inn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .hero-telefon :global(.telefon) { animation: none; } }
-  @media (min-width: 900px) {
-    .hero-sek { padding-block: 80px 0; }
-    .hero { grid-template-columns: 7fr 5fr; gap: 64px; padding-bottom: 0; }
-    .hero-telefon { max-height: 560px; justify-self: end; padding-top: 8px; }
-  }
 
   /* 2 Demo */
   .demo-rad { display: flex; justify-content: center; margin-top: 8px; }

@@ -502,6 +502,6 @@ Gjort 28. september 2026 i ti innsjekk på `opd`, ett per steg, hvert testet fø
 | N9 | `2fcd5ea` | `nginx-unprivileged` som `infra/web/`. `try_files` gjør `$uri` om til `/demo/app.html`, så map-reglene matcher begge stavemåter. CI-jobben filtrerer på endringer med `git diff` mot `github.event.before`/PR-basen (jobbnivå har ikke `paths`). 21 tester grønne mot imaget. |
 | N10 | `1e041c0` | `README.md`, `DEPLOY.md` (§ 1, 3, 4, 5, 6, 8) og `IMPLEMENTERINGSPLAN.md` (fase 14, 7.5). Lenken fra appens innloggingsskjerm og fra kodetank.no er ikke gjort; de er egne innsjekk (`app:` og repoet `kodetank-no`). |
 
-Eierens rettelser 28. september etter gjennomgang: demoen er originalprototypen i egen fane (N1 og N5 over), og «Slik virker det» får full avstand over og 40 px under overskriften (`luft`-prop på `Seksjon.astro`).
+Eierens rettelser 28. september etter gjennomgang: demoen er originalprototypen i egen fane (N1 og N5 over), og «Slik virker det» får full avstand over og 40 px under overskriften (`luft`-prop på `Seksjon.astro`). `/funksjoner` fikk samme åpning som de andre sidene: felles `Hero.astro` (mørkt bånd, telefon, knapper; brukes nå på forsiden, `/for/*` og `/funksjoner`), rollene som ett 2×2-rutenett i bentoens celler, og statusene som appens statuspiller med appens statusfarger.
 
 Gjenstår for eieren: svarene i kapittel 1, DNS for `returapp.no`, `www` og `dev`, de to Dokploy-appene, postkassen `kontakt@returapp.no`, Search Console og Bing, lenke fra kodetank.no.

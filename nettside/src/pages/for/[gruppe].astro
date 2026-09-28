@@ -1,9 +1,9 @@
 ---
 import type { ImageMetadata } from 'astro';
 import Faq from '../../components/Faq.astro';
+import Hero from '../../components/Hero.astro';
 import Knapp from '../../components/Knapp.astro';
 import Seksjon from '../../components/Seksjon.astro';
-import Telefon from '../../components/Telefon.astro';
 import { grupper } from '../../innhold/for';
 import Base from '../../layouts/Base.astro';
 
@@ -16,16 +16,7 @@ const bilde = (tema: 'light' | 'dark') => alle[`../../assets/skjermbilder/${tema
 ---
 
 <Base tittel={g.tittel} beskrivelse={g.beskrivelse} sti={g.sti} faq={g.faq} brodsmuler={[[g.tittel, g.sti]]}>
-  <Seksjon mork class="hero-sek">
-    <div class="hero">
-      <div>
-        <h1>{g.h1}</h1>
-        <p class="ingress dempet">{g.ingress}</p>
-        <div class="knapper"><Knapp href={g.cta.href}>{g.cta.tekst}</Knapp><Knapp href="/demo" variant="sekundar">Prøv demoen</Knapp></div>
-      </div>
-      <div class="hero-telefon"><Telefon lys={bilde('light')} mork={bilde('dark')} alt={g.alt} eager /></div>
-    </div>
-  </Seksjon>
+  <Hero h1={g.h1} ingress={g.ingress} primar={g.cta} lys={bilde('light')} mork={bilde('dark')} alt={g.alt} />
 
   <Seksjon luft>
     <h2>Slik virker det</h2>
@@ -71,15 +62,6 @@ const bilde = (tema: 'light' | 'dark') => alle[`../../assets/skjermbilder/${tema
 <style>
   h2 { margin-bottom: 24px; }
   .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
-  .hero-sek { padding-block: 56px 0; }
-  .hero { display: grid; gap: 40px; align-items: center; }
-  .hero .ingress { margin-top: 20px; }
-  .hero-telefon { max-height: 300px; overflow: hidden; justify-self: center; }
-  @media (min-width: 900px) {
-    .hero-sek { padding-block: 80px 0; }
-    .hero { grid-template-columns: 7fr 5fr; gap: 64px; }
-    .hero-telefon { max-height: 560px; justify-self: end; padding-top: 8px; }
-  }
   .steg { display: grid; gap: 28px; }
   .steg h3 { font-size: 24px; }
   .steg p { margin-top: 8px; }

@@ -1,0 +1,46 @@
+---
+import type { ImageMetadata } from 'astro';
+import Knapp from './Knapp.astro';
+import Seksjon from './Seksjon.astro';
+import Telefon from './Telefon.astro';
+
+// Åpningen på alle hovedsider: mørkt bånd i innloggingspaletten, H1 til venstre, telefon til høyre.
+// På mobil vises bare øverste del av telefonen, så knappene ikke havner under folden.
+interface Props {
+  h1: string;
+  ingress: string;
+  primar: { tekst: string; href: string };
+  sekundar?: { tekst: string; href: string };
+  lys: ImageMetadata;
+  mork: ImageMetadata;
+  alt: string;
+}
+const { h1, ingress, primar, sekundar = { tekst: 'Prøv demoen', href: '/demo' }, lys, mork, alt } = Astro.props;
+---
+
+<Seksjon mork class="hero-sek">
+  <div class="hero">
+    <div>
+      <h1>{h1}</h1>
+      <p class="ingress dempet">{ingress}</p>
+      <div class="knapper"><Knapp href={primar.href}>{primar.tekst}</Knapp><Knapp href={sekundar.href} variant="sekundar">{sekundar.tekst}</Knapp></div>
+    </div>
+    <div class="hero-telefon"><Telefon lys={lys} mork={mork} alt={alt} eager /></div>
+  </div>
+</Seksjon>
+
+<style>
+  .hero-sek { padding-block: 56px 0; }
+  .hero { display: grid; gap: 40px; align-items: center; }
+  .ingress { margin-top: 20px; }
+  .knapper { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .hero-telefon { max-height: 300px; overflow: hidden; justify-self: center; }
+  .hero-telefon :global(.telefon) { animation: inn var(--varighet-inn) var(--kurve) both; }
+  @keyframes inn { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { .hero-telefon :global(.telefon) { animation: none; } }
+  @media (min-width: 900px) {
+    .hero-sek { padding-block: 80px 0; }
+    .hero { grid-template-columns: 7fr 5fr; gap: 64px; }
+    .hero-telefon { max-height: 560px; justify-self: end; padding-top: 8px; }
+  }
+</style>

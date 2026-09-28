@@ -3,7 +3,7 @@ export const tittel = 'Funksjoner: melding, børs, rute, kvittering';
 export const beskrivelse = 'Fem steg for giver, innboks og oppdragsbørs for hentefirma, dagens stopp og henting med bilde for sjåfør, kvittering med kg og CO₂-anslag.';
 
 export const h1 = 'Fire roller, én henting';
-export const ingress = 'Giveren melder, hentefirmaet fordeler, sjåføren henter, og superbrukeren holder plattformen i gang.';
+export const ingress = 'Giveren melder, hentefirmaet fordeler, sjåføren henter. Superbrukeren holder plattformen i gang.';
 
 export const roller = [
   {
@@ -57,12 +57,13 @@ export const roller = [
 
 export const kategorier = ['Paller', 'Dører', 'Vinduer', 'Elektro', 'Innredning', 'Møbler', 'Kjøkken', 'Sanitær/VVS', 'Trevirke', 'Isolasjon', 'Metall/stål', 'Annet'];
 
-export const statuser = [
-  ['Mottatt', 'Ordren er meldt og ligger hos hentefirmaet som dekker kommunen.'],
-  ['Tildelt', 'En sjåfør har fått ordren, tidspunkt er ikke avtalt.'],
-  ['Planlagt', 'Dag og tidsvindu er satt. Giveren får beskjed.'],
-  ['Under henting', 'Sjåføren er på vei. Giveren får beskjed.'],
-  ['Hentet', 'Bekreftet med bilde og mengde. Kvittering sendes.'],
-  ['Avvik', 'Noe stemte ikke ved henting. Årsak og notat følger ordren.'],
-  ['Avbrutt', 'Giveren trakk ordren mens den var aktiv.'],
+// Statuspillene bruker appens egne farger for hver status (IMPLEMENTERINGSPLAN.md 1.6).
+export const statuser: { navn: string; tekst: string; farge: 'info' | 'warn' | 'tint' | 'pri' | 'dan' | 'mu' }[] = [
+  { navn: 'Mottatt', tekst: 'Ordren er meldt og ligger hos hentefirmaet som dekker kommunen.', farge: 'info' },
+  { navn: 'Tildelt', tekst: 'En sjåfør har fått ordren, tidspunkt er ikke avtalt.', farge: 'warn' },
+  { navn: 'Planlagt', tekst: 'Dag og tidsvindu er satt. Giveren får beskjed.', farge: 'tint' },
+  { navn: 'Under henting', tekst: 'Sjåføren er på vei. Giveren får beskjed.', farge: 'tint' },
+  { navn: 'Hentet', tekst: 'Bekreftet med bilde og mengde. Kvittering sendes.', farge: 'pri' },
+  { navn: 'Avvik', tekst: 'Noe stemte ikke ved henting. Årsak og notat følger ordren.', farge: 'dan' },
+  { navn: 'Avbrutt', tekst: 'Giveren trakk ordren mens den var aktiv.', farge: 'mu' },
 ];
